@@ -2,40 +2,73 @@ const films = [
   {
     title: 'northern mockingbird.',
     role: '2025 • 3 min',
-    statement:
-      'finding the bird.',
-    video: 'https://www.youtube.com/embed/4uJzOTmVHKQ?autoplay=1'
+    statement: 'finding the bird.',
+    video: 'https://www.youtube.com/embed/4uJzOTmVHKQ?autoplay=1',
+    image:
+      'https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=900&q=80',
+    alt: 'City lights and silhouette'
   },
   {
     title: 'After the Last Reel',
     role: 'Director of Photography • 2024 • 8 min',
     statement:
       'Shot on vintage lenses, this short tracks a projectionist closing down a neighborhood cinema.',
-    video: 'https://www.youtube.com/embed/jfKfPfyJRdk?autoplay=1'
+    video: 'https://www.youtube.com/embed/jfKfPfyJRdk?autoplay=1',
+    image:
+      'https://images.unsplash.com/photo-1485841890310-6a055c88698a?auto=format&fit=crop&w=900&q=80',
+    alt: 'Vintage projector close up'
   },
   {
     title: 'Cloudline',
     role: 'Editor • 2023 • 15 min',
     statement:
       'An experiment in fragmented memory, assembled from interviews, diaries, and urban atmospheres.',
-    video: 'https://www.youtube.com/embed/tgbNymZ7vqY?autoplay=1'
+    video: 'https://www.youtube.com/embed/tgbNymZ7vqY?autoplay=1',
+    image:
+      'https://images.unsplash.com/photo-1505685296765-3a2736de412f?auto=format&fit=crop&w=900&q=80',
+    alt: 'Foggy street at night'
   },
   {
     title: 'Home in Transit',
     role: 'Director / DP • 2022 • 10 min',
     statement:
       'A moving portrait of two siblings commuting across borders to keep family rituals alive.',
-    video: 'https://www.youtube.com/embed/XHOmBV4js_E?autoplay=1'
+    video: 'https://www.youtube.com/embed/XHOmBV4js_E?autoplay=1',
+    image:
+      'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=900&q=80',
+    alt: 'Filmmaker holding camera'
   }
 ];
 
 const cursor = document.querySelector('.cursor');
-const magnets = document.querySelectorAll('.magnetic, .film-card, .btn');
 const overlay = document.querySelector('.film-overlay');
 const iframe = overlay.querySelector('iframe');
 const closeOverlayBtn = document.querySelector('.close-overlay');
 const nav = document.querySelector('.site-nav');
 const menuToggle = document.querySelector('.menu-toggle');
+const filmGrid = document.querySelector('.film-grid');
+
+function renderFilmCards() {
+  if (!filmGrid) return;
+
+  const cardsMarkup = films
+    .map(
+      (film, index) => `
+        <article class="film-card" data-film="${index}">
+          <img src="${film.image}" alt="${film.alt || film.title}" />
+          <div class="film-meta">
+            <h3>${film.title}</h3>
+            <p>${film.role}</p>
+          </div>
+        </article>
+      `
+    )
+    .join('');
+
+  filmGrid.innerHTML = cardsMarkup;
+}
+
+renderFilmCards();
 
 if (window.gsap) {
   gsap.registerPlugin(ScrollTrigger);
@@ -102,25 +135,26 @@ window.addEventListener('mousemove', (event) => {
   cursor.style.top = `${event.clientY}px`;
 });
 
-magnets.forEach((element) => {
+document.querySelectorAll('.magnetic, .film-card, .btn').forEach((element) => {
   element.addEventListener('mouseenter', () => cursor?.classList.add('active'));
   element.addEventListener('mouseleave', () => cursor?.classList.remove('active'));
 });
 
-document.querySelectorAll('.film-card').forEach((card) => {
-  card.addEventListener('click', () => {
-    const film = films[Number(card.dataset.film)];
-    if (!film) return;
+filmGrid?.addEventListener('click', (event) => {
+  const card = event.target.closest('.film-card');
+  if (!card) return;
 
-    document.getElementById('overlay-title').textContent = film.title;
-    document.getElementById('overlay-role').textContent = film.role;
-    document.getElementById('overlay-statement').textContent = film.statement;
-    iframe.src = film.video;
+  const film = films[Number(card.dataset.film)];
+  if (!film) return;
 
-    overlay.classList.add('open');
-    overlay.setAttribute('aria-hidden', 'false');
-    document.body.style.overflow = 'hidden';
-  });
+  document.getElementById('overlay-title').textContent = film.title;
+  document.getElementById('overlay-role').textContent = film.role;
+  document.getElementById('overlay-statement').textContent = film.statement;
+  iframe.src = film.video;
+
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
 });
 
 function closeOverlay() {
@@ -141,5 +175,8 @@ menuToggle.addEventListener('click', () => {
 });
 
 nav.querySelectorAll('a').forEach((link) => {
-  link.addEventListener('click', () => nav.classList.remove('open'));
+  link.addEventListener('click', () => {
+    nav.classList.remove('open');
+    menuToggle.setAttribute('aria-expanded', 'false');
+  });
 });
