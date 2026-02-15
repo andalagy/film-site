@@ -11,12 +11,19 @@
 }
 
 html,
+body,
+*,
+*::before,
+*::after {
+  cursor: none !important;
+}
+
+html,
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
   font-family: "Space Grotesk", sans-serif;
-  cursor: none;
 }
 
 img,
@@ -182,7 +189,6 @@ h2 {
   position: relative;
   border-radius: 16px;
   overflow: hidden;
-  cursor: pointer;
   min-height: 320px;
 }
 
@@ -308,10 +314,6 @@ h2 {
 }
 
 @media (max-width: 720px) {
-  body {
-    cursor: auto;
-  }
-
   .cursor {
     display: none;
   }
