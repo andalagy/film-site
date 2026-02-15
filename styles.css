@@ -24,6 +24,22 @@ body {
   cursor: none !important;
 }
 
+button:hover,
+button:hover *,
+a:hover,
+a:hover *,
+[role="button"]:hover,
+[role="button"]:hover *,
+.clickable:hover,
+.clickable:hover * {
+  cursor: pointer !important;
+}
+
+body.cursor-visible,
+body.cursor-visible * {
+  cursor: pointer !important;
+}
+
 img,
 video {
   max-width: 100%;

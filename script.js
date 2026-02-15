@@ -54,7 +54,7 @@ function renderFilmCards() {
   const cardsMarkup = films
     .map(
       (film, index) => `
-        <article class="film-card" data-film="${index}">
+        <article class="film-card clickable" data-film="${index}">
           <img src="${film.image}" alt="${film.alt || film.title}" />
           <div class="film-meta">
             <h3>${film.title}</h3>
@@ -135,9 +135,19 @@ window.addEventListener('mousemove', (event) => {
   cursor.style.top = `${event.clientY}px`;
 });
 
-document.querySelectorAll('.magnetic, .film-card, .btn').forEach((element) => {
-  element.addEventListener('mouseenter', () => cursor?.classList.add('active'));
-  element.addEventListener('mouseleave', () => cursor?.classList.remove('active'));
+const interactiveSelector = 'button, a, [role="button"], .clickable';
+
+document.addEventListener('pointerover', (event) => {
+  if (!event.target.closest(interactiveSelector)) return;
+  cursor?.classList.add('active');
+  document.body.classList.add('cursor-visible');
+});
+
+document.addEventListener('pointerout', (event) => {
+  if (!event.target.closest(interactiveSelector)) return;
+  if (event.relatedTarget?.closest(interactiveSelector)) return;
+  cursor?.classList.remove('active');
+  document.body.classList.remove('cursor-visible');
 });
 
 filmGrid?.addEventListener('click', (event) => {
