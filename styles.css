@@ -16,7 +16,12 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: "Space Grotesk", sans-serif;
-  cursor: none;
+}
+
+*,
+*::before,
+*::after {
+  cursor: none !important;
 }
 
 img,
@@ -308,10 +313,6 @@ h2 {
 }
 
 @media (max-width: 720px) {
-  body {
-    cursor: auto;
-  }
-
   .cursor {
     display: none;
   }
