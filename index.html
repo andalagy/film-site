@@ -59,7 +59,6 @@
           <p class="eyebrow">Selected Work</p>
           <h2>Film Showcase</h2>
         </div>
-        <p class="section-note">Click a thumbnail to lazy-load and play the YouTube video.</p>
         <div class="film-grid" aria-live="polite"></div>
       </section>
 
@@ -111,6 +110,26 @@
         <a class="btn primary magnetic" href="mailto:ari@example.com">Say Hello</a>
       </section>
     </main>
+
+    <div class="film-overlay" aria-hidden="true">
+      <button class="close-overlay" aria-label="Close film details">Close</button>
+      <div class="overlay-content">
+        <div class="video-wrap">
+          <iframe
+            src=""
+            title="Film trailer"
+            loading="lazy"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+          ></iframe>
+        </div>
+        <div>
+          <h3 id="overlay-title"></h3>
+          <p id="overlay-role"></p>
+          <p id="overlay-statement"></p>
+        </div>
+      </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
