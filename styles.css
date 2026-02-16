@@ -10,6 +10,40 @@
   box-sizing: border-box;
 }
 
+/*
+  Global cursor lock.
+  `!important` and pseudo-element coverage help override framework/component cursor rules
+  (e.g. links/buttons/iframes with `cursor: pointer`).
+  The JS lock manager toggles these classes and continuously re-enforces them for dynamic content.
+*/
+html.cursor-hidden,
+html.cursor-hidden *,
+html.cursor-hidden *::before,
+html.cursor-hidden *::after,
+html.cursor-hidden iframe,
+html.cursor-hidden [style*='cursor'],
+html.cursor-hidden [role='button'],
+html.cursor-hidden a,
+html.cursor-hidden button,
+html.cursor-hidden input,
+html.cursor-hidden textarea,
+html.cursor-hidden select,
+html.cursor-hidden summary,
+html.cursor-hidden label {
+  cursor: none !important;
+}
+
+/*
+  Escape-key restore mode: if users or admins need the default cursor back,
+  the script flips to `cursor-restored` and this rule re-enables browser defaults.
+*/
+html.cursor-restored,
+html.cursor-restored *,
+html.cursor-restored *::before,
+html.cursor-restored *::after {
+  cursor: auto !important;
+}
+
 html,
 body {
   margin: 0;

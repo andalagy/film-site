@@ -43,6 +43,182 @@ function logMissingElement(name) {
   console.error(`[film-site] Required element missing: ${name}. Feature initialization was skipped safely.`);
 }
 
+function initializeGlobalCursorLock(customConfig = {}) {
+  const config = {
+    debug: false,
+    restoreKey: 'Escape',
+    allowRestoreToggle: true,
+    enforceIntervalMs: 1200,
+    ...customConfig
+  };
+
+  const root = document.documentElement;
+  const trackedSelector = [
+    'a',
+    'button',
+    'input',
+    'textarea',
+    'select',
+    'summary',
+    'label',
+    'iframe',
+    '[role="button"]',
+    '[style*="cursor"]'
+  ].join(',');
+
+  let observer = null;
+  let auditTimer = null;
+
+  const debugLog = (...args) => {
+    if (config.debug) {
+      console.info('[cursor-lock]', ...args);
+    }
+  };
+
+  const forceNoneOnElement = (element) => {
+    if (!(element instanceof HTMLElement) && !(element instanceof SVGElement)) {
+      return;
+    }
+
+    element.style.setProperty('cursor', 'none', 'important');
+    element.querySelectorAll?.('*').forEach((child) => {
+      child.style.setProperty('cursor', 'none', 'important');
+    });
+  };
+
+  const lockCursor = () => {
+    root.classList.remove('cursor-restored');
+    root.classList.add('cursor-hidden');
+
+    // Force key roots to `cursor: none` to mitigate inline style overrides from third-party widgets.
+    document.body?.style.setProperty('cursor', 'none', 'important');
+    document.documentElement.style.setProperty('cursor', 'none', 'important');
+
+    document.querySelectorAll(trackedSelector).forEach(forceNoneOnElement);
+
+    const cursorNode = document.querySelector('.cursor');
+    if (cursorNode instanceof HTMLElement) {
+      cursorNode.hidden = false;
+    }
+
+    debugLog('Cursor hidden globally.');
+  };
+
+  const restoreCursor = () => {
+    root.classList.remove('cursor-hidden');
+    root.classList.add('cursor-restored');
+    document.body?.style.removeProperty('cursor');
+    document.documentElement.style.removeProperty('cursor');
+
+    const cursorNode = document.querySelector('.cursor');
+    if (cursorNode instanceof HTMLElement) {
+      cursorNode.hidden = true;
+    }
+
+    debugLog('Cursor restored to browser default.');
+  };
+
+  const browserSupportsCursorNone =
+    typeof CSS !== 'undefined' && typeof CSS.supports === 'function' && CSS.supports('cursor', 'none');
+
+  if (!browserSupportsCursorNone) {
+    // Fallback: when a browser does not support `cursor: none`, we keep the default cursor
+    // and avoid a broken "half-hidden" state.
+    root.classList.remove('cursor-hidden');
+    root.classList.add('cursor-restored');
+    console.warn('[cursor-lock] Browser does not support `cursor: none`; using default cursor fallback.');
+    return {
+      active: false,
+      reason: 'unsupported-browser'
+    };
+  }
+
+  lockCursor();
+
+  // Verify once after styles settle. If cursor still resolves to non-`none`, fallback cleanly.
+  window.setTimeout(() => {
+    const cursorValue = window.getComputedStyle(document.body).cursor;
+    if (cursorValue !== 'none' && !cursorValue.includes('none')) {
+      console.warn('[cursor-lock] Could not enforce hidden cursor reliably; reverting to default cursor fallback.');
+      restoreCursor();
+    }
+  }, 120);
+
+  const enforceIfLocked = (target = null) => {
+    if (!root.classList.contains('cursor-hidden')) return;
+
+    if (target instanceof HTMLElement || target instanceof SVGElement) {
+      forceNoneOnElement(target);
+      return;
+    }
+
+    lockCursor();
+  };
+
+  observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.type === 'childList') {
+        mutation.addedNodes.forEach((node) => {
+          enforceIfLocked(node);
+        });
+      }
+
+      if (mutation.type === 'attributes' && mutation.target) {
+        enforceIfLocked(mutation.target);
+      }
+    }
+  });
+
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['style', 'class']
+  });
+
+  // Some embedded or dynamic components change cursor on interaction events.
+  ['pointerover', 'mousemove', 'mouseenter', 'focusin'].forEach((eventName) => {
+    document.addEventListener(
+      eventName,
+      (event) => {
+        enforceIfLocked(event.target);
+      },
+      true
+    );
+  });
+
+  auditTimer = window.setInterval(() => {
+    if (!root.classList.contains('cursor-hidden')) return;
+    document.querySelectorAll(trackedSelector).forEach(forceNoneOnElement);
+    debugLog('Periodic cursor lock audit applied.');
+  }, config.enforceIntervalMs);
+
+  if (config.allowRestoreToggle) {
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== config.restoreKey) return;
+
+      if (root.classList.contains('cursor-hidden')) {
+        restoreCursor();
+      } else {
+        lockCursor();
+      }
+    });
+  }
+
+  return {
+    active: true,
+    destroy() {
+      observer?.disconnect();
+      observer = null;
+      if (auditTimer) {
+        window.clearInterval(auditTimer);
+        auditTimer = null;
+      }
+      restoreCursor();
+    }
+  };
+}
+
 function parseVideoId(url) {
   try {
     const parsed = new URL(url);
@@ -713,6 +889,7 @@ function initializeCursorAndNav() {
 
 // Waiting for DOMContentLoaded ensures element queries are reliable in production where scripts can execute earlier than expected.
 document.addEventListener('DOMContentLoaded', () => {
+  initializeGlobalCursorLock(window.CURSOR_LOCK_CONFIG);
   void initializeFilmShowcase();
   initializeAnimation();
   initializeSmoothScroll();
