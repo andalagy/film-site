@@ -485,7 +485,8 @@ body.video-detail-open {
 .main-wordmark {
   display: block;
   width: fit-content;
-  margin: clamp(5rem, 12vw, 10rem) auto clamp(2.5rem, 6vw, 4.5rem);
+  margin: clamp(5rem, 12vw, 10rem) auto 0;
+  transform: translateY(46%);
   font-family: 'Syne', sans-serif;
   font-size: clamp(3rem, 16vw, 11rem);
   font-weight: 700;
