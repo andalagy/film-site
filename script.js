@@ -18,7 +18,7 @@ const films = [
     role: 'Director • 2025 • 15 min',
     statement:
       'A music video to portray the story behind the widely acclaimed song.',
-    videoUrl: 'https://youtu.be/-vp76Gp6zoI'
+    videoUrl: 'https://www.youtube.com/watch?v=-vp76Gp6zoI'
   },
   {
     title: 'Echoes of Tommorow',
