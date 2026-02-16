@@ -1,7 +1,12 @@
 (function attachYouTubeUtils(globalScope) {
+  function assertYouTubeId(id) {
+    return typeof id === 'string' && /^[A-Za-z0-9_-]{11}$/.test(id);
+  }
+
   function cleanVideoId(value) {
     if (!value) return null;
-    return value.split(/[?#]/)[0].trim() || null;
+    const cleanedValue = value.split(/[?#]/)[0].trim() || null;
+    return assertYouTubeId(cleanedValue) ? cleanedValue : null;
   }
 
   function extractYouTubeVideoId(url) {
@@ -33,10 +38,9 @@
   }
 
   function getYouTubeThumbnailCandidates(videoId) {
-    if (!videoId) return [];
+    if (!assertYouTubeId(videoId)) return [];
 
     return [
-      `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/maxresdefault.jpg`,
       `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg`,
       `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/mqdefault.jpg`,
       `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/sddefault.jpg`,

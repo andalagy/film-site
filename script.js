@@ -1,5 +1,6 @@
 const films = [
   {
+    id: '4uJzOTmVHKQ',
     title: 'northern mockingbird.',
     role: '2025 • 3 min',
     statement: 
@@ -7,6 +8,7 @@ const films = [
     videoUrl: 'https://www.youtube.com/embed/4uJzOTmVHKQ'
   },
   {
+    id: 'qaAV4v811j8',
     title: 'the man who waters concrete.',
     role: 'Director • 2025 • 2 min',
     statement:
@@ -14,6 +16,7 @@ const films = [
     videoUrl: 'https://www.youtube.com/embed/qaAV4v811j8'
   },
   {
+    id: '-vp76Gp6zoI',
     title: 'Bohemian Rhapsody',
     role: 'Director • 2025 • 15 min',
     statement:
@@ -21,6 +24,7 @@ const films = [
     videoUrl: 'https://www.youtube.com/embed/-vp76Gp6zoI'
   },
   {
+    id: '9pLS3b_b_oM',
     title: 'Echoes of Tommorow',
     role: '2024 • 3 min',
     statement:
@@ -35,8 +39,7 @@ const appRouteState = {
 };
 
 const filmRuntimeState = {
-  films: [],
-  youtubeApiScriptPromise: null
+  films: []
 };
 
 function logMissingElement(name) {
@@ -220,248 +223,58 @@ function initializeGlobalCursorLock(customConfig = {}) {
 }
 
 function parseVideoId(url) {
-  return window.YouTubeUtils?.extractYouTubeVideoId(url) || null;
+  const parsedId = window.YouTubeUtils?.extractYouTubeVideoId(url) || null;
+  return assertYouTubeId(parsedId) ? parsedId : null;
 }
 
-function getThumbnailCandidates(videoId) {
-  return window.YouTubeUtils?.getYouTubeThumbnailCandidates(videoId) || [];
+function assertYouTubeId(id) {
+  return typeof id === 'string' && /^[A-Za-z0-9_-]{11}$/.test(id);
 }
+
+function isDevEnvironment() {
+  return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+}
+
+function normalizeFilmData(rawFilms) {
+  return rawFilms.map((film, index) => {
+    const normalizedId = assertYouTubeId(film.id) ? film.id : parseVideoId(film.videoUrl);
+
+    if (!assertYouTubeId(normalizedId) && isDevEnvironment()) {
+      console.warn(
+        `[film-site] Film at index ${index} has a missing or invalid YouTube id.`,
+        {
+          title: film.title,
+          id: film.id || null,
+          videoUrl: film.videoUrl || null
+        }
+      );
+    }
+
+    return {
+      ...film,
+      videoId: assertYouTubeId(normalizedId) ? normalizedId : null,
+      thumbnailCandidates: getDeterministicThumbnailFallbacks(normalizedId),
+      thumbnailUrl: assertYouTubeId(normalizedId)
+        ? `https://img.youtube.com/vi/${encodeURIComponent(normalizedId)}/hqdefault.jpg`
+        : null
+    };
+  });
+}
+
 
 function getDeterministicThumbnailFallbacks(videoId) {
-  if (!videoId) return [];
+  if (!assertYouTubeId(videoId)) return [];
 
   return [
-    `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/maxresdefault.jpg`,
     `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg`,
     `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/mqdefault.jpg`,
     `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/default.jpg`
   ];
 }
 
-function loadImage(url) {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error(`Image failed to load: ${url}`));
-    image.src = url;
-  });
-}
-
-function isUsableYouTubeThumbnail(url, image) {
-  // YouTube often serves a 120x90 generic placeholder for unavailable higher-tier thumbnails.
-  // We treat that as a failed candidate so we can keep stepping down to a guaranteed valid asset.
-  if (url.endsWith('/default.jpg')) {
-    return true;
-  }
-
-  return image.naturalWidth > 120 && image.naturalHeight > 90;
-}
-
-async function resolveYouTubeThumbnail(videoId) {
-  const candidates = getThumbnailCandidates(videoId);
-
-  for (const candidate of candidates) {
-    try {
-      const loadedImage = await loadImage(candidate);
-      if (isUsableYouTubeThumbnail(candidate, loadedImage)) {
-        return candidate;
-      }
-    } catch (error) {
-      // Try the next candidate.
-    }
-  }
-
-  return null;
-}
-
-
-function toWatchUrl(videoId) {
-  return `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
-}
-
-function toEmbedUrl(videoId, { autoplay = false } = {}) {
-  const params = new URLSearchParams({ rel: '0', enablejsapi: '1' });
-  if (autoplay) {
-    params.set('autoplay', '1');
-  }
-
-  return `https://www.youtube.com/embed/${encodeURIComponent(videoId)}?${params.toString()}`;
-}
-
-function getYouTubeApiKey() {
-  // Optional runtime hook for deployments that inject env vars into the page.
-  return (
-    window.FILM_SITE_CONFIG?.youtubeApiKey
-    || window.__YOUTUBE_DATA_API_KEY__
-    || ''
-  ).trim();
-}
-
-async function fetchEmbeddableFromApi(videoId, apiKey) {
-  if (!apiKey) return null;
-
-  const endpoint = new URL('https://www.googleapis.com/youtube/v3/videos');
-  endpoint.searchParams.set('part', 'status');
-  endpoint.searchParams.set('id', videoId);
-  endpoint.searchParams.set('key', apiKey);
-
-  try {
-    const response = await fetch(endpoint.toString());
-    if (!response.ok) {
-      console.warn(`[film-site] YouTube Data API check failed for ${videoId} with status ${response.status}. Falling back to iframe probing.`);
-      return null;
-    }
-
-    const payload = await response.json();
-    const item = payload?.items?.[0];
-    if (!item) {
-      return false;
-    }
-
-    return item.status?.embeddable !== false;
-  } catch (error) {
-    console.error(`[film-site] YouTube Data API request failed for ${videoId}. Falling back to iframe probing.`, error);
-    return null;
-  }
-}
-
-function loadYouTubeIframeApi() {
-  if (window.YT?.Player) {
-    return Promise.resolve(window.YT);
-  }
-
-  if (filmRuntimeState.youtubeApiScriptPromise) {
-    return filmRuntimeState.youtubeApiScriptPromise;
-  }
-
-  filmRuntimeState.youtubeApiScriptPromise = new Promise((resolve, reject) => {
-    const existingScript = document.querySelector('script[data-youtube-iframe-api]');
-    if (!existingScript) {
-      const script = document.createElement('script');
-      script.src = 'https://www.youtube.com/iframe_api';
-      script.async = true;
-      script.dataset.youtubeIframeApi = 'true';
-      script.onerror = () => reject(new Error('Unable to load YouTube Iframe API script.'));
-      document.head.appendChild(script);
-    }
-
-    const maxWaitMs = 8000;
-    const startedAt = Date.now();
-
-    function pollForApi() {
-      if (window.YT?.Player) {
-        resolve(window.YT);
-        return;
-      }
-
-      if (Date.now() - startedAt > maxWaitMs) {
-        reject(new Error('Timed out waiting for YouTube Iframe API.'));
-        return;
-      }
-
-      window.setTimeout(pollForApi, 120);
-    }
-
-    pollForApi();
-  });
-
-  return filmRuntimeState.youtubeApiScriptPromise;
-}
-
-async function checkEmbeddableViaIframeApi(videoId) {
-  try {
-    const YT = await loadYouTubeIframeApi();
-
-    return await new Promise((resolve) => {
-      const container = document.createElement('div');
-      container.style.position = 'fixed';
-      container.style.left = '-9999px';
-      container.style.top = '0';
-      container.style.width = '1px';
-      container.style.height = '1px';
-      container.style.opacity = '0';
-      document.body.appendChild(container);
-
-      let settled = false;
-      const cleanup = () => {
-        container.remove();
-      };
-
-      const settle = (result) => {
-        if (settled) return;
-        settled = true;
-        cleanup();
-        resolve(result);
-      };
-
-      window.setTimeout(() => {
-        console.warn(`[film-site] Timed out probing embeddability for ${videoId}. Marking as external-only to avoid a broken modal.`);
-        settle(false);
-      }, 8000);
-
-      try {
-        // We intentionally use the Player API because blocked embeds trigger onError (101/150),
-        // allowing us to detect non-embeddable videos before the user clicks.
-        // eslint-disable-next-line no-new
-        new YT.Player(container, {
-          width: '1',
-          height: '1',
-          videoId,
-          playerVars: {
-            autoplay: 0,
-            rel: 0,
-            playsinline: 1
-          },
-          events: {
-            onReady: () => settle(true),
-            onError: () => settle(false)
-          }
-        });
-      } catch (error) {
-        console.error(`[film-site] Failed to probe embeddability via Iframe API for ${videoId}.`, error);
-        settle(false);
-      }
-    });
-  } catch (error) {
-    console.error(`[film-site] Could not initialize YouTube Iframe API. Marking ${videoId} as external-only.`, error);
-    return false;
-  }
-}
-
-async function checkEmbeddable(videoId) {
-  const apiResult = await fetchEmbeddableFromApi(videoId, getYouTubeApiKey());
-  if (typeof apiResult === 'boolean') {
-    return apiResult;
-  }
-
-  return checkEmbeddableViaIframeApi(videoId);
-}
-
-async function deriveFilmData(film) {
-  const videoId = parseVideoId(film.videoUrl);
-  if (!videoId) {
-    return {
-      ...film,
-      videoId: null,
-      embedUrl: null,
-      watchUrl: film.videoUrl,
-      thumbnailUrl: null,
-      isEmbeddable: false
-    };
-  }
-
-  const thumbnailCandidates = getDeterministicThumbnailFallbacks(videoId);
-  const isEmbeddable = await checkEmbeddable(videoId);
-
-  return {
-    ...film,
-    videoId,
-    embedUrl: toEmbedUrl(videoId),
-    watchUrl: toWatchUrl(videoId),
-    thumbnailUrl: thumbnailCandidates[0] || null,
-    thumbnailCandidates,
-    isEmbeddable
-  };
+function buildEmbedSrc(videoId) {
+  if (!assertYouTubeId(videoId)) return null;
+  return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}`;
 }
 
 function escapeHtml(text) {
@@ -478,7 +291,7 @@ function getFilmByVideoId(videoId) {
 }
 
 function parseVideoRoute(pathname = window.location.pathname) {
-  const match = pathname.match(/^\/video\/([^/]+)$/);
+  const match = pathname.match(/^\/(?:films|video)\/([^/]+)$/);
   if (!match) return null;
   return decodeURIComponent(match[1]);
 }
@@ -518,20 +331,21 @@ function closeVideoDetail({ shouldNavigate = true, returnFocus = true } = {}) {
 }
 
 function renderVideoDetailFullScreen(film) {
-  const playerMarkup = film.isEmbeddable
+  const embedSrc = buildEmbedSrc(film.videoId);
+  const playerMarkup = embedSrc
     ? `
         <iframe
-          src="${film.embedUrl}&autoplay=1"
+          src="${embedSrc}"
           title="Player for ${escapeHtml(film.title)}"
           loading="lazy"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowfullscreen
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
         ></iframe>
       `
     : `
         <div class="video-detail-fallback">
-          <p>This video can only be watched directly on YouTube.</p>
-          <a class="btn primary clickable" href="${film.watchUrl}" target="_blank" rel="noopener noreferrer">Watch on YouTube</a>
+          <p>Video unavailable.</p>
         </div>
       `;
 
@@ -575,7 +389,7 @@ function openVideoDetail(videoId, { shouldNavigate = true, triggerElement = null
   closeButton?.focus();
 
   if (shouldNavigate && parseVideoRoute() !== videoId) {
-    history.pushState({ videoId }, '', `/video/${encodeURIComponent(videoId)}`);
+    history.pushState({ videoId }, '', `/films/${encodeURIComponent(videoId)}`);
   }
 }
 
@@ -607,7 +421,7 @@ function createVideoCard(film) {
       <div class="video-shell">
         <a
           class="video-thumb-link clickable"
-          href="/video/${id}"
+          href="/films/${id}"
           data-video-detail-link="${id}"
           aria-label="Open details for ${escapeHtml(film.title)}"
         >
@@ -633,14 +447,11 @@ function createVideoCard(film) {
         <h3>
           <a
             class="film-title-link clickable"
-            href="/video/${id}"
+            href="/films/${id}"
             data-video-detail-link="${id}"
-            data-embeddable="${film.isEmbeddable ? 'true' : 'false'}"
-            data-watch-url="${film.watchUrl}"
           >${escapeHtml(film.title)}</a>
         </h3>
         <p>${escapeHtml(film.role)}</p>
-        ${film.isEmbeddable ? '' : '<p class="external-only-label">Playback may continue on YouTube from details.</p>'}
       </div>
     </article>
   `;
@@ -679,7 +490,7 @@ function initializeThumbnailFallbacks(container) {
   );
 }
 
-async function initializeFilmShowcase() {
+function initializeFilmShowcase() {
   try {
     const filmGrid = document.querySelector('.film-grid');
     if (!filmGrid) {
@@ -687,7 +498,7 @@ async function initializeFilmShowcase() {
       return;
     }
 
-    filmRuntimeState.films = await Promise.all(films.map((film) => deriveFilmData(film)));
+    filmRuntimeState.films = normalizeFilmData(films);
 
     const cardsMarkup = filmRuntimeState.films.map(createVideoCard).filter(Boolean).join('');
     filmGrid.innerHTML = cardsMarkup;
@@ -769,7 +580,7 @@ function initializeAnimation() {
   }
 
   if (!window.gsap) {
-    console.error('[film-site] GSAP not found. Animation setup skipped.');
+    console.warn('[film-site] GSAP not found. Animation setup skipped.');
     return;
   }
 
@@ -811,7 +622,7 @@ function initializeAnimation() {
 
 function initializeSmoothScroll() {
   if (!window.Lenis) {
-    console.error('[film-site] Lenis not found. Smooth scrolling skipped.');
+    console.warn('[film-site] Lenis not found. Smooth scrolling skipped.');
     return;
   }
 
