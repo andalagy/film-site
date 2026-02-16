@@ -6,6 +6,7 @@
   --muted: #9f9f9f;
   --line: #2e2e2e;
   --accent: #ffffff;
+  --grain-intensity: 0.34;
 }
 
 * {
@@ -48,15 +49,6 @@ img,
 video {
   max-width: 100%;
   display: block;
-}
-
-.noise {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.06;
-  background-image: url('https://www.transparenttextures.com/patterns/asfalt-dark.png');
-  z-index: 100;
 }
 
 .cursor {
@@ -133,16 +125,59 @@ video {
 }
 
 .directors-slate {
+  position: relative;
   border: 1px solid #3a3a3a;
   background: linear-gradient(180deg, rgba(14, 14, 14, 0.95), rgba(7, 7, 7, 0.95));
   border-radius: 18px;
   padding: clamp(1.2rem, 2.4vw, 2rem);
   box-shadow: 0 28px 42px rgba(0, 0, 0, 0.35);
+  isolation: isolate;
 }
 
-.directors-slate.is-clapped {
-  transform: scale(1.01);
+.directors-slate.is-clapping {
+  animation: slate-shake 340ms cubic-bezier(0.23, 1, 0.32, 1);
   border-color: #646464;
+}
+
+.directors-slate::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(102deg, transparent 32%, rgba(255, 255, 255, 0.2) 47%, transparent 64%);
+  transform: translateX(-130%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.directors-slate.is-clapping::after {
+  animation: slate-flash 280ms ease-out;
+}
+
+.slate-clapper {
+  position: absolute;
+  top: -0.9rem;
+  left: clamp(1rem, 2.8vw, 1.6rem);
+  width: clamp(150px, 34vw, 220px);
+  height: 14px;
+  border: 1px solid #505050;
+  border-radius: 8px;
+  transform-origin: left center;
+  background: #161616;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.3rem;
+  padding: 0.2rem;
+}
+
+.slate-clapper span {
+  border-radius: 4px;
+  background: linear-gradient(90deg, #efefef, #191919 55%, #efefef);
+  opacity: 0.8;
+}
+
+.directors-slate.is-clapping .slate-clapper {
+  animation: clapper-snap 320ms cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
 .eyebrow {
@@ -156,6 +191,11 @@ video {
   color: #dddddd;
   max-width: 68ch;
   line-height: 1.6;
+  transition: opacity 220ms ease;
+}
+
+.slate-statement.is-fading {
+  opacity: 0.25;
 }
 
 .slate-credits {
@@ -191,8 +231,57 @@ video {
 }
 
 .slate-meta strong {
+  display: inline-block;
   color: #fff;
   margin-left: 0.28rem;
+  transition: opacity 190ms ease, transform 190ms ease;
+}
+
+.slate-meta strong.is-updating {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+.slate-lab {
+  margin: 1rem 0 1.25rem;
+  display: grid;
+  grid-template-columns: auto minmax(220px, 1fr);
+  gap: 1rem;
+  align-items: end;
+}
+
+.grain-preview-module {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.grain-preview-square {
+  --preview-size: clamp(98px, 18vw, 140px);
+  width: var(--preview-size);
+  aspect-ratio: 1;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.12), rgba(7, 7, 7, 0.8) 58%), #060606;
+  box-shadow: inset 0 0 18px rgba(255, 255, 255, 0.08), 0 8px 22px rgba(0, 0, 0, 0.35);
+}
+
+.grain-preview-overlay {
+  position: absolute;
+  inset: -50%;
+  background-image: url('https://www.transparenttextures.com/patterns/asfalt-dark.png');
+  background-size: 180px 180px;
+  opacity: var(--grain-intensity);
+  filter: contrast(calc(1 + (var(--grain-intensity) * 1.9)));
+  animation: grain-drift 8s steps(8) infinite;
+  transition: opacity 190ms ease, filter 190ms ease;
+}
+
+.grain-control-module p {
+  margin: 0.5rem 0 0;
+  color: #c6c6c6;
+  font-size: 0.82rem;
 }
 
 h1,
@@ -392,32 +481,39 @@ input[type='range']:focus-visible {
   color: #ffffff;
 }
 
-.interactive-lab {
-  padding-top: 1rem;
-}
-
-.lab-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1rem;
-}
-
-.lab-card {
-  border: 1px solid #323232;
-  border-radius: 14px;
-  padding: 1rem;
-  background: var(--panel-elevated);
-}
-
-.lab-card p {
-  color: #d8d8d8;
-  min-height: 4.5rem;
-}
-
 input[type='range'] {
   width: 100%;
   accent-color: #fff;
   background: transparent;
+}
+
+@keyframes clapper-snap {
+  0% { transform: rotate(-24deg); }
+  38% { transform: rotate(8deg); }
+  66% { transform: rotate(-4deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes slate-shake {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-1.5px); }
+  45% { transform: translateX(1.2px); }
+  70% { transform: translateX(-0.8px); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes slate-flash {
+  0% { transform: translateX(-130%); opacity: 0; }
+  22% { opacity: 0.75; }
+  100% { transform: translateX(140%); opacity: 0; }
+}
+
+@keyframes grain-drift {
+  0% { transform: translate3d(0, 0, 0); }
+  25% { transform: translate3d(-6%, 4%, 0); }
+  50% { transform: translate3d(3%, -3%, 0); }
+  75% { transform: translate3d(-4%, -5%, 0); }
+  100% { transform: translate3d(0, 0, 0); }
 }
 
 .video-detail-layer {
@@ -553,8 +649,11 @@ body.video-detail-open {
     scroll-behavior: auto !important;
   }
 
-  .directors-slate.is-clapped {
-    transform: none;
+  .directors-slate.is-clapping,
+  .directors-slate.is-clapping::after,
+  .directors-slate.is-clapping .slate-clapper,
+  .grain-preview-overlay {
+    animation: none;
   }
 }
 
@@ -598,6 +697,10 @@ body.video-detail-open {
   }
 
   .slate-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .slate-lab {
     grid-template-columns: 1fr;
   }
 }

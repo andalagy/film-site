@@ -721,14 +721,15 @@ function initializeCursorAndNav() {
   });
 }
 
-function initializeDirectorsSlate() {
+function initializeDirectorSlateComponent() {
   const slate = document.querySelector('[data-directors-slate]');
   const takeButton = document.querySelector('[data-slate-take]');
   const sceneNode = document.querySelector('[data-scene]');
   const takeNode = document.querySelector('[data-take]');
   const rollNode = document.querySelector('[data-roll]');
+  const statementNode = document.querySelector('[data-slate-statement]');
 
-  if (!slate || !takeButton || !sceneNode || !takeNode || !rollNode) {
+  if (!slate || !takeButton || !sceneNode || !takeNode || !rollNode || !statementNode) {
     return;
   }
 
@@ -736,8 +737,43 @@ function initializeDirectorsSlate() {
   let scene = 1;
   let take = 1;
   let roll = 1;
+  let statementIndex = 0;
+
+  const statements = [
+    'I make films that stay in the silence after the credits. My work follows memory, tension, and unresolved emotion through minimal, atmospheric frames.',
+    'I frame quiet spaces where memory cracks open, and the audience discovers emotion between lines instead of inside them.',
+    'I chase cinematic tension through restraint—letting sound, shadow, and stillness reveal what dialogue refuses to name.'
+  ];
 
   const formatNumber = (value) => String(value).padStart(2, '0');
+  const metadataNodes = [sceneNode, takeNode, rollNode];
+
+  const animateMetadataSwap = () => {
+    metadataNodes.forEach((node) => node.classList.add('is-updating'));
+
+    window.setTimeout(() => {
+      sceneNode.textContent = formatNumber(scene);
+      takeNode.textContent = formatNumber(take);
+      rollNode.textContent = `A${formatNumber(roll)}`;
+      metadataNodes.forEach((node) => node.classList.remove('is-updating'));
+    }, prefersReducedMotion ? 30 : 120);
+  };
+
+  const animateStatementSwap = () => {
+    statementIndex = (statementIndex + 1) % statements.length;
+
+    if (prefersReducedMotion) {
+      statementNode.textContent = statements[statementIndex];
+      return;
+    }
+
+    statementNode.classList.add('is-fading');
+
+    window.setTimeout(() => {
+      statementNode.textContent = statements[statementIndex];
+      statementNode.classList.remove('is-fading');
+    }, 130);
+  };
 
   takeButton.addEventListener('click', () => {
     take += 1;
@@ -748,55 +784,55 @@ function initializeDirectorsSlate() {
       roll += 1;
     }
 
-    sceneNode.textContent = formatNumber(scene);
-    takeNode.textContent = formatNumber(take);
-    rollNode.textContent = `A${formatNumber(roll)}`;
+    animateMetadataSwap();
+    animateStatementSwap();
 
-    if (!prefersReducedMotion) {
-      slate.classList.add('is-clapped');
-      window.setTimeout(() => {
-        slate.classList.remove('is-clapped');
-      }, 210);
+    slate.classList.remove('is-clapping');
+
+    if (prefersReducedMotion) {
+      statementNode.classList.add('is-fading');
+      window.setTimeout(() => statementNode.classList.remove('is-fading'), 120);
+      return;
     }
+
+    // Force restart so rapid clicks still produce a clean clap sequence.
+    void slate.offsetWidth;
+    slate.classList.add('is-clapping');
+    window.setTimeout(() => {
+      slate.classList.remove('is-clapping');
+    }, 340);
   });
 }
 
-function initializeInteractiveLab() {
-  const promptNode = document.querySelector('[data-scene-prompt]');
-  const nextPromptButton = document.querySelector('[data-next-prompt]');
+function initializeSlateGrainPreview() {
   const grainControl = document.querySelector('[data-grain-control]');
-  const noiseLayer = document.querySelector('.noise');
+  const grainPreview = document.querySelector('[data-grain-preview]');
 
-  const prompts = [
-    'A hallway where every footstep sounds like it belongs to someone else.',
-    'A quiet kitchen lit only by a refrigerator door that never closes.',
-    'Two strangers share an umbrella and both pretend not to recognize each other.',
-    'A city rooftop where the wind carries last year\'s unanswered apology.'
-  ];
-
-  if (promptNode && nextPromptButton) {
-    let promptIndex = 0;
-
-    nextPromptButton.addEventListener('click', () => {
-      promptIndex = (promptIndex + 1) % prompts.length;
-      promptNode.textContent = prompts[promptIndex];
-    });
+  if (!grainControl || !grainPreview) {
+    return;
   }
 
-  if (grainControl && noiseLayer) {
-    grainControl.addEventListener('input', () => {
-      const nextOpacity = Number(grainControl.value) / 100;
-      noiseLayer.style.opacity = String(nextOpacity);
-    });
-  }
+  const root = document.documentElement;
+  const minValue = Number(grainControl.min || 0);
+  const maxValue = Number(grainControl.max || 100);
+
+  const setGrainIntensity = () => {
+    const rawValue = Number(grainControl.value);
+    const normalizedValue = (rawValue - minValue) / (maxValue - minValue || 1);
+    const intensity = 0.12 + normalizedValue * 0.7;
+    root.style.setProperty('--grain-intensity', intensity.toFixed(3));
+  };
+
+  setGrainIntensity();
+  grainControl.addEventListener('input', setGrainIntensity, { passive: true });
 }
 
 // Waiting for DOMContentLoaded ensures element queries are reliable in production where scripts can execute earlier than expected.
 document.addEventListener('DOMContentLoaded', () => {
   initializeGlobalCursorLock(window.CURSOR_LOCK_CONFIG);
   void initializeFilmShowcase();
-  initializeDirectorsSlate();
-  initializeInteractiveLab();
+  initializeDirectorSlateComponent();
+  initializeSlateGrainPreview();
   initializeAnimation();
   initializeSmoothScroll();
   initializeContactCta();

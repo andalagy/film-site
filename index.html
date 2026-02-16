@@ -17,7 +17,6 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="noise" aria-hidden="true"></div>
     <div class="cursor" aria-hidden="true"></div>
 
     <header class="site-header" id="top">
@@ -35,9 +34,15 @@
       <section class="hero" id="slate">
         <div class="hero-content">
           <article class="directors-slate" data-directors-slate>
+            <div class="slate-clapper" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
             <p class="eyebrow">Director's Slate</p>
             <h1 class="reveal">Andrew Yan — Director / Writer</h1>
-            <p class="slate-statement">
+            <p class="slate-statement" data-slate-statement>
               I make films that stay in the silence after the credits. My work follows memory, tension, and unresolved emotion through minimal, atmospheric frames.
             </p>
             <div class="slate-credits" aria-label="Creative credits">
@@ -51,6 +56,19 @@
               <p>SCENE <strong data-scene>01</strong></p>
               <p>TAKE <strong data-take>01</strong></p>
               <p>ROLL <strong data-roll>A01</strong></p>
+            </div>
+            <div class="slate-lab" aria-label="Slate tuning controls">
+              <div class="grain-preview-module">
+                <p class="eyebrow">Grain Preview</p>
+                <div class="grain-preview-square" data-grain-preview aria-hidden="true">
+                  <span class="grain-preview-overlay"></span>
+                </div>
+              </div>
+              <div class="grain-control-module">
+                <label for="grain-control" class="eyebrow">Noise Level</label>
+                <input id="grain-control" type="range" min="2" max="30" value="12" data-grain-control aria-label="Adjust film grain intensity" />
+                <p>Dial a subtle grain pass into the slate monitor.</p>
+              </div>
             </div>
             <div class="hero-actions">
               <button class="btn primary magnetic" type="button" data-slate-take aria-label="Clap slate and increment take">
@@ -69,28 +87,6 @@
         </div>
         <!-- JS fills this container after DOMContentLoaded so it works consistently in preview and production builds. -->
         <div class="film-grid" aria-live="polite"></div>
-      </section>
-
-      <section class="section interactive-lab" id="lab">
-        <div class="section-head">
-          <p class="eyebrow">Cinematic Play</p>
-          <h2>After-Cut Interactions</h2>
-        </div>
-        <div class="lab-grid">
-          <article class="lab-card">
-            <h3>Scene Prompt Generator</h3>
-            <p data-scene-prompt>
-              A hallway where every footstep sounds like it belongs to someone else.
-            </p>
-            <button class="btn magnetic" type="button" data-next-prompt aria-label="Generate next scene prompt">Next Prompt</button>
-          </article>
-          <article class="lab-card">
-            <h3>Grain Intensity</h3>
-            <p>Dial the monochrome grain texture for your viewing mood.</p>
-            <label for="grain-control" class="eyebrow">Noise Level</label>
-            <input id="grain-control" type="range" min="2" max="10" value="6" data-grain-control aria-label="Adjust film grain intensity" />
-          </article>
-        </div>
       </section>
 
       <section class="section about" id="about">
