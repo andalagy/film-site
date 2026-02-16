@@ -18,14 +18,14 @@ const films = [
     role: 'Director • 2025 • 15 min',
     statement:
       'A music video to portray the story behind the widely acclaimed song.',
-    videoUrl: 'https://www.youtube.com/watch?v=-vp76Gp6zoI'
+    videoUrl: 'https://www.youtube.com/embed/-vp76Gp6zoI'
   },
   {
     title: 'Echoes of Tommorow',
     role: '2024 • 3 min',
     statement:
       'Or maybe in the future of stock footages.',
-    videoUrl: 'https://www.youtube.com/watch?v=9pLS3b_b_oM'
+    videoUrl: 'https://www.youtube.com/embed/9pLS3b_b_oM'
   }
 ];
 
@@ -225,6 +225,17 @@ function parseVideoId(url) {
 
 function getThumbnailCandidates(videoId) {
   return window.YouTubeUtils?.getYouTubeThumbnailCandidates(videoId) || [];
+}
+
+function getDeterministicThumbnailFallbacks(videoId) {
+  if (!videoId) return [];
+
+  return [
+    `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/maxresdefault.jpg`,
+    `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg`,
+    `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/mqdefault.jpg`,
+    `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/default.jpg`
+  ];
 }
 
 function loadImage(url) {
@@ -439,7 +450,7 @@ async function deriveFilmData(film) {
     };
   }
 
-  const thumbnailUrl = await resolveYouTubeThumbnail(videoId);
+  const thumbnailCandidates = getDeterministicThumbnailFallbacks(videoId);
   const isEmbeddable = await checkEmbeddable(videoId);
 
   return {
@@ -447,7 +458,8 @@ async function deriveFilmData(film) {
     videoId,
     embedUrl: toEmbedUrl(videoId),
     watchUrl: toWatchUrl(videoId),
-    thumbnailUrl,
+    thumbnailUrl: thumbnailCandidates[0] || null,
+    thumbnailCandidates,
     isEmbeddable
   };
 }
@@ -584,20 +596,28 @@ function createVideoCard(film) {
   // We generate and verify YouTube image URLs ourselves because iframe/oEmbed previews can return stale or placeholder
   // thumbnails without a network error, which makes embedded preview thumbnails unreliable.
   return `
-    <article class="film-card" data-video-id="${id}">
+    <article
+      class="film-card"
+      data-video-id="${id}"
+      data-video-detail-link="${id}"
+      role="link"
+      tabindex="0"
+      aria-label="Open details for ${escapeHtml(film.title)}"
+    >
       <div class="video-shell">
         <a
           class="video-thumb-link clickable"
-          href="${film.watchUrl}"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Play video: ${escapeHtml(film.title)}"
+          href="/video/${id}"
+          data-video-detail-link="${id}"
+          aria-label="Open details for ${escapeHtml(film.title)}"
         >
           <img
             src="${film.thumbnailUrl}"
             alt="${escapeHtml(film.title)}"
             loading="lazy"
             decoding="async"
+            data-thumb-fallback-index="0"
+            data-thumb-fallbacks="${escapeHtml((film.thumbnailCandidates || []).join('|'))}"
           />
           <span class="video-overlay">
             <span class="play-button-overlay" role="img" aria-label="Play video">
@@ -613,17 +633,46 @@ function createVideoCard(film) {
         <h3>
           <a
             class="film-title-link clickable"
-            href="${film.isEmbeddable ? `/video/${id}` : film.watchUrl}"
-            ${film.isEmbeddable ? `data-video-detail-link="${id}"` : 'target="_blank" rel="noopener noreferrer"'}
+            href="/video/${id}"
+            data-video-detail-link="${id}"
             data-embeddable="${film.isEmbeddable ? 'true' : 'false'}"
             data-watch-url="${film.watchUrl}"
           >${escapeHtml(film.title)}</a>
         </h3>
         <p>${escapeHtml(film.role)}</p>
-        ${film.isEmbeddable ? '' : '<p class="external-only-label">Watch on YouTube</p>'}
+        ${film.isEmbeddable ? '' : '<p class="external-only-label">Playback may continue on YouTube from details.</p>'}
       </div>
     </article>
   `;
+}
+
+function initializeThumbnailFallbacks(container) {
+  container.addEventListener(
+    'error',
+    (event) => {
+      const image = event.target;
+      if (!(image instanceof HTMLImageElement)) {
+        return;
+      }
+
+      const fallbackList = (image.dataset.thumbFallbacks || '').split('|').filter(Boolean);
+      if (!fallbackList.length) {
+        return;
+      }
+
+      const currentIndex = Number(image.dataset.thumbFallbackIndex || '0');
+      const nextIndex = currentIndex + 1;
+
+      if (nextIndex >= fallbackList.length) {
+        image.removeAttribute('data-thumb-fallback-index');
+        return;
+      }
+
+      image.dataset.thumbFallbackIndex = String(nextIndex);
+      image.src = fallbackList[nextIndex];
+    },
+    true
+  );
 }
 
 async function initializeFilmShowcase() {
@@ -644,19 +693,31 @@ async function initializeFilmShowcase() {
       return;
     }
 
-    filmGrid.addEventListener('click', (event) => {
-      const titleLink = event.target.closest('[data-video-detail-link]');
-      if (titleLink) {
-        const isEmbeddable = titleLink.dataset.embeddable === 'true';
-        if (!isEmbeddable) {
-          return;
-        }
+    initializeThumbnailFallbacks(filmGrid);
 
-        event.preventDefault();
-        openVideoDetail(titleLink.dataset.videoDetailLink, {
-          triggerElement: titleLink
-        });
-      }
+    filmGrid.addEventListener('click', (event) => {
+      const detailTarget = event.target.closest('[data-video-detail-link]');
+      const clickableCard = event.target.closest('.film-card[data-video-id]');
+      const videoId = detailTarget?.dataset.videoDetailLink || clickableCard?.dataset.videoId;
+
+      if (!videoId) return;
+
+      event.preventDefault();
+      openVideoDetail(videoId, {
+        triggerElement: detailTarget || clickableCard
+      });
+    });
+
+    filmGrid.addEventListener('keydown', (event) => {
+      const card = event.target.closest('.film-card[data-video-id]');
+      if (!card) return;
+
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+
+      event.preventDefault();
+      openVideoDetail(card.dataset.videoId, {
+        triggerElement: card
+      });
     });
 
     const directVideoId = parseVideoRoute();
