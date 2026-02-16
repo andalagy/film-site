@@ -243,10 +243,12 @@ h2 {
 
 .video-shell .video-thumb-link {
   display: block;
+  cursor: pointer;
 }
 
 .video-shell img {
   object-fit: cover;
+  transition: transform 260ms ease;
 }
 
 
@@ -261,18 +263,55 @@ h2 {
   inset: 0;
   display: grid;
   place-items: center;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.55));
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.4));
+  transition: background 250ms ease;
 }
 
-.play-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
+.play-button-overlay {
+  width: clamp(52px, 16%, 78px);
+  aspect-ratio: 1;
+  border-radius: 999px;
   display: grid;
   place-items: center;
-  background: rgba(0, 0, 0, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  font-size: 1.4rem;
+  background: rgba(10, 10, 10, 0.44);
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  backdrop-filter: blur(3px);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.35);
+  transition: transform 250ms ease, opacity 250ms ease, box-shadow 250ms ease, background 250ms ease;
+  opacity: 0.95;
+}
+
+.play-button-overlay svg {
+  width: 100%;
+  height: 100%;
+}
+
+.play-button-ring {
+  fill: none;
+  stroke: rgba(240, 240, 240, 0.88);
+  stroke-width: 1.25;
+}
+
+.play-button-triangle {
+  fill: rgba(252, 252, 252, 0.96);
+}
+
+.video-thumb-link:hover .play-button-overlay,
+.video-thumb-link:focus-visible .play-button-overlay {
+  transform: scale(1.05);
+  opacity: 1;
+  background: rgba(8, 8, 8, 0.58);
+  box-shadow: 0 0 26px rgba(255, 255, 255, 0.19), 0 12px 34px rgba(0, 0, 0, 0.45);
+}
+
+.video-thumb-link:hover .video-overlay,
+.video-thumb-link:focus-visible .video-overlay {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.03), rgba(0, 0, 0, 0.28));
+}
+
+.video-thumb-link:hover img,
+.video-thumb-link:focus-visible img {
+  transform: scale(1.02);
 }
 
 .film-meta {

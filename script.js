@@ -554,7 +554,7 @@ function createVideoCard(film) {
           href="${film.watchUrl}"
           target="_blank"
           rel="noopener noreferrer"
-          aria-label="Watch ${film.title} on YouTube"
+          aria-label="Play video: ${escapeHtml(film.title)}"
         >
           <img
             src="${preferredThumbnail}"
@@ -564,8 +564,13 @@ function createVideoCard(film) {
             loading="lazy"
             decoding="async"
           />
-          <span class="video-overlay" aria-hidden="true">
-            <span class="play-icon">▶</span>
+          <span class="video-overlay">
+            <span class="play-button-overlay" role="img" aria-label="Play video">
+              <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+                <circle cx="32" cy="32" r="31" class="play-button-ring" />
+                <path d="M26 21.5L44.5 32L26 42.5V21.5Z" class="play-button-triangle" />
+              </svg>
+            </span>
           </span>
         </a>
       </div>
