@@ -451,6 +451,10 @@ h2 {
   margin-bottom: 2rem;
 }
 
+.section-actions {
+  margin-top: 1.25rem;
+}
+
 .hero-actions,
 .contact {
   display: flex;
@@ -761,6 +765,13 @@ body.video-detail-open {
   align-items: center;
   text-align: center;
   padding-bottom: 7rem;
+}
+
+.about .contact {
+  align-items: flex-start;
+  text-align: left;
+  margin-top: 2rem;
+  padding-bottom: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

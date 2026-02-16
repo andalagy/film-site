@@ -31,16 +31,17 @@ function stripBasePath(pathname = window.location.pathname) {
   return normalizedPath;
 }
 
-function toAppUrl(routePath = '/') {
+function toAppUrl(routePath = '/', hash = '') {
   const normalizedRoute = routePath.startsWith('/') ? routePath : `/${routePath}`;
-  if (normalizedRoute === '/') return `${APP_BASE_PATH}/`;
-  return `${APP_BASE_PATH}${normalizedRoute}`;
+  const routeUrl = normalizedRoute === '/' ? `${APP_BASE_PATH}/` : `${APP_BASE_PATH}${normalizedRoute}`;
+  return hash ? `${routeUrl}${hash.startsWith('#') ? hash : `#${hash}`}` : routeUrl;
 }
 
-function navigateToRoute(routePath, state = {}) {
-  const targetUrl = toAppUrl(routePath);
+function navigateToRoute(routePath, { state = {}, hash = '', replace = false } = {}) {
+  const targetUrl = toAppUrl(routePath, hash);
   if (`${window.location.pathname}${window.location.search}${window.location.hash}` === targetUrl) return;
-  history.pushState(state, '', targetUrl);
+  const historyMethod = replace ? 'replaceState' : 'pushState';
+  history[historyMethod](state, '', targetUrl);
 }
 
 function getAppRoute(pathname = window.location.pathname) {
@@ -48,8 +49,7 @@ function getAppRoute(pathname = window.location.pathname) {
 
   if (normalizedPath === '/') return { page: 'home', filmId: null };
   if (normalizedPath === '/films') return { page: 'films', filmId: null };
-  if (normalizedPath === '/about') return { page: 'about', filmId: null };
-  if (normalizedPath === '/contact') return { page: 'contact', filmId: null };
+  if (normalizedPath === '/about' || normalizedPath === '/contact') return { page: 'about', filmId: null };
 
   const detailMatch = normalizedPath.match(/^\/films\/([^/]+)$/);
   if (detailMatch) {
@@ -63,6 +63,10 @@ function getAppRoute(pathname = window.location.pathname) {
 }
 
 function applyRouteLayout(route = getAppRoute()) {
+  if (stripBasePath() === '/contact') {
+    navigateToRoute('/about', { replace: true, hash: window.location.hash });
+  }
+
   document.body.dataset.page = route.page;
   document.querySelectorAll('[data-route-pane]').forEach((pane) => {
     const paneRoute = pane.getAttribute('data-route-pane');
@@ -76,6 +80,16 @@ function applyRouteLayout(route = getAppRoute()) {
     link.classList.toggle('is-active', isActive);
     link.setAttribute('aria-current', isActive ? 'page' : 'false');
   });
+}
+
+function scrollToSectionByHash(hashValue = window.location.hash) {
+  if (!hashValue) return;
+
+  const target = document.querySelector(hashValue);
+  if (!(target instanceof HTMLElement) || target.hidden) return;
+
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  target.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' });
 }
 
 function initializeGlobalCursorLock(customConfig = {}) {
@@ -450,42 +464,47 @@ function initializeThumbnailFallbacks(container) {
 }
 
 function initializeFilmShowcase() {
-  const filmGrid = document.querySelector('.film-grid');
-  if (!filmGrid) {
-    logMissingElement('.film-grid');
+  const filmGrids = document.querySelectorAll('[data-film-grid]');
+  if (!filmGrids.length) {
+    logMissingElement('[data-film-grid]');
     return;
   }
 
   filmRuntimeState.films = normalizeFilmData(films);
-  filmGrid.innerHTML = filmRuntimeState.films.map(createVideoCard).join('');
-  initializeThumbnailFallbacks(filmGrid);
+  filmGrids.forEach((filmGrid) => {
+    const limit = Number.parseInt(filmGrid.dataset.filmLimit || '', 10);
+    const filmsToRender = Number.isInteger(limit) ? filmRuntimeState.films.slice(0, limit) : filmRuntimeState.films;
+    filmGrid.innerHTML = filmsToRender.map(createVideoCard).join('');
+    initializeThumbnailFallbacks(filmGrid);
 
-  filmGrid.addEventListener('click', (event) => {
-    const detailLink = event.target.closest('[data-video-detail-link]');
-    if (!detailLink) return;
+    filmGrid.addEventListener('click', (event) => {
+      const detailLink = event.target.closest('[data-video-detail-link]');
+      if (!detailLink) return;
 
-    event.preventDefault();
-    openVideoDetail(detailLink.dataset.videoDetailLink, {
-      triggerElement: detailLink,
-      shouldNavigate: true
+      event.preventDefault();
+      openVideoDetail(detailLink.dataset.videoDetailLink, {
+        triggerElement: detailLink,
+        shouldNavigate: true
+      });
     });
-  });
 
-  filmGrid.addEventListener('keydown', (event) => {
-    if (event.key !== 'Enter' && event.key !== ' ') return;
-    const card = event.target.closest('[data-video-id]');
-    if (!card) return;
+    filmGrid.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const card = event.target.closest('[data-video-id]');
+      if (!card) return;
 
-    event.preventDefault();
-    openVideoDetail(card.dataset.videoId, {
-      triggerElement: card,
-      shouldNavigate: true
+      event.preventDefault();
+      openVideoDetail(card.dataset.videoId, {
+        triggerElement: card,
+        shouldNavigate: true
+      });
     });
   });
 
   const syncDetailToRoute = () => {
     const route = getAppRoute();
     applyRouteLayout(route);
+    scrollToSectionByHash(window.location.hash);
 
     if (route.filmId) {
       openVideoDetail(route.filmId, { shouldNavigate: false });
@@ -531,28 +550,30 @@ function initializeSmoothScroll() {
 }
 
 function initializeContactCta() {
-  const sayHelloLink = document.querySelector('[data-say-hello]');
-  if (!sayHelloLink) return;
+  const sayHelloLinks = document.querySelectorAll('[data-say-hello]');
+  if (!sayHelloLinks.length) return;
 
-  const feedback = document.querySelector('[data-contact-feedback]');
-  const contactEmail = sayHelloLink.dataset.email || '';
+  sayHelloLinks.forEach((sayHelloLink) => {
+    const feedback = sayHelloLink.parentElement?.querySelector('[data-contact-feedback]') || null;
+    const contactEmail = sayHelloLink.dataset.email || '';
 
-  sayHelloLink.addEventListener('click', async () => {
-    if (feedback) {
-      feedback.hidden = false;
-      feedback.textContent = contactEmail
-        ? `If your mail app did not open, email me at: ${contactEmail}`
-        : 'If your mail app did not open, please use the contact email listed on this page.';
-    }
+    sayHelloLink.addEventListener('click', async () => {
+      if (feedback) {
+        feedback.hidden = false;
+        feedback.textContent = contactEmail
+          ? `If your mail app did not open, email me at: ${contactEmail}`
+          : 'If your mail app did not open, please use the contact email listed on this page.';
+      }
 
-    if (!navigator.clipboard || !contactEmail) return;
+      if (!navigator.clipboard || !contactEmail) return;
 
-    try {
-      await navigator.clipboard.writeText(contactEmail);
-      if (feedback) feedback.textContent = `If your mail app did not open, the address was copied: ${contactEmail}`;
-    } catch (error) {
-      // no-op
-    }
+      try {
+        await navigator.clipboard.writeText(contactEmail);
+        if (feedback) feedback.textContent = `If your mail app did not open, the address was copied: ${contactEmail}`;
+      } catch (error) {
+        // no-op
+      }
+    });
   });
 }
 
@@ -599,8 +620,18 @@ function initializeCursorAndNav() {
       const routePath = link.getAttribute('data-route-path');
       if (!href || !routePath) return;
 
+      if (link.hasAttribute('data-nav-about') && getAppRoute().page === 'home') {
+        event.preventDefault();
+        const aboutSection = document.querySelector('#home-about');
+        if (aboutSection instanceof HTMLElement) {
+          const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          aboutSection.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' });
+        }
+        return;
+      }
+
       event.preventDefault();
-      navigateToRoute(routePath);
+      navigateToRoute(routePath, { hash: '' });
       applyRouteLayout(getAppRoute());
       closeVideoDetail({ shouldNavigate: false, returnFocus: false });
       window.scrollTo({ top: 0, behavior: 'auto' });

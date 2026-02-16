@@ -42,8 +42,7 @@
       <nav class="site-nav" aria-label="Main navigation">
         <a href="/andalagy/" data-route-link="home" data-route-path="/">Home</a>
         <a href="/andalagy/films" data-route-link="films" data-route-path="/films">Films</a>
-        <a href="/andalagy/about" data-route-link="about" data-route-path="/about">About</a>
-        <a href="/andalagy/contact" data-route-link="contact" data-route-path="/contact">Contact</a>
+        <a href="/andalagy/about" data-route-link="about" data-route-path="/about" data-nav-about>About</a>
       </nav>
     </header>
 
@@ -90,12 +89,57 @@
         </div>
       </section>
 
-      <section class="section films route-pane" id="films" data-route-pane="films">
+      <section class="section films route-pane" id="selected-films" data-route-pane="home">
         <div class="section-head">
           <p class="eyebrow">Selected Work</p>
-          <h2>Film Showcase</h2>
+          <h2>Selected Films</h2>
         </div>
-        <div class="film-grid" aria-live="polite"></div>
+        <div class="film-grid" data-film-grid data-film-limit="4" aria-live="polite"></div>
+        <div class="section-actions">
+          <a class="btn magnetic" href="/andalagy/films" data-route-link="films" data-route-path="/films">Show more</a>
+        </div>
+      </section>
+
+      <section class="section about route-pane" id="home-about" data-route-pane="home">
+        <div class="section-head">
+          <p class="eyebrow">About</p>
+          <h2>About + Contact</h2>
+        </div>
+        <div class="about-layout">
+          <img src="https://69914d1f681c79fa0bcd66be.imgix.net/pfp.jpg?w=800&h=800" alt="Portrait of Andrew Yan" />
+          <div>
+            <p>
+              His writing focuses on moments just before something is named—when memory, sound, and emotion are still unsettled. Dialogue circles rather than explains. Ordinary places shift quietly, time bends, and meaning arrives late, if at all.
+              Across film and prose, his work trusts silence and ambiguity, inviting the audience to sit with what lingers rather than what resolves.
+            </p>
+            <ul class="timeline">
+              <li><span>2019</span>First micro unprofessional short made.</li>
+              <li><span>2024</span>First narrative short film made.</li>
+              <li><span>20??</span>Coming soon :)</li>
+              <li><span>20??</span>Coming soon :))</li>
+            </ul>
+          </div>
+        </div>
+        <section class="contact" id="home-contact">
+          <h3>Contact</h3>
+          <a
+            class="btn primary magnetic"
+            href="mailto:g13901913371@gmail.com?subject=Hello%20Andrew"
+            data-say-hello
+            data-email="g13901913371@gmail.com"
+          >
+            Say Hello
+          </a>
+          <p class="contact-feedback" data-contact-feedback aria-live="polite" hidden></p>
+        </section>
+      </section>
+
+      <section class="section films route-pane" id="films" data-route-pane="films">
+        <div class="section-head">
+          <p class="eyebrow">Filmography</p>
+          <h2>Full Filmography</h2>
+        </div>
+        <div class="film-grid" data-film-grid aria-live="polite"></div>
       </section>
 
       <section class="section about route-pane" id="about" data-route-pane="about">
@@ -118,19 +162,18 @@
             </ul>
           </div>
         </div>
-      </section>
-
-      <section class="section contact route-pane" id="contact" data-route-pane="contact">
-        <h2>andalagy</h2>
-        <a
-          class="btn primary magnetic"
-          href="mailto:g13901913371@gmail.com?subject=Hello%20Andrew"
-          data-say-hello
-          data-email="g13901913371@gmail.com"
-        >
-          Say Hello
-        </a>
-        <p class="contact-feedback" data-contact-feedback aria-live="polite" hidden></p>
+        <section class="contact" id="contact">
+          <h3>Contact</h3>
+          <a
+            class="btn primary magnetic"
+            href="mailto:g13901913371@gmail.com?subject=Hello%20Andrew"
+            data-say-hello
+            data-email="g13901913371@gmail.com"
+          >
+            Say Hello
+          </a>
+          <p class="contact-feedback" data-contact-feedback aria-live="polite" hidden></p>
+        </section>
       </section>
     </main>
 
