@@ -34,11 +34,16 @@ const appRouteState = {
   activeFilmId: null
 };
 
+const filmRuntimeState = {
+  films: [],
+  youtubeApiScriptPromise: null
+};
+
 function logMissingElement(name) {
   console.error(`[film-site] Required element missing: ${name}. Feature initialization was skipped safely.`);
 }
 
-function extractYouTubeId(url) {
+function parseVideoId(url) {
   try {
     const parsed = new URL(url);
 
@@ -62,6 +67,192 @@ function extractYouTubeId(url) {
   }
 }
 
+
+function toWatchUrl(videoId) {
+  return `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
+}
+
+function toEmbedUrl(videoId, { autoplay = false } = {}) {
+  const params = new URLSearchParams({ rel: '0', enablejsapi: '1' });
+  if (autoplay) {
+    params.set('autoplay', '1');
+  }
+
+  return `https://www.youtube.com/embed/${encodeURIComponent(videoId)}?${params.toString()}`;
+}
+
+function getYouTubeApiKey() {
+  // Optional runtime hook for deployments that inject env vars into the page.
+  return (
+    window.FILM_SITE_CONFIG?.youtubeApiKey
+    || window.__YOUTUBE_DATA_API_KEY__
+    || ''
+  ).trim();
+}
+
+async function fetchEmbeddableFromApi(videoId, apiKey) {
+  if (!apiKey) return null;
+
+  const endpoint = new URL('https://www.googleapis.com/youtube/v3/videos');
+  endpoint.searchParams.set('part', 'status');
+  endpoint.searchParams.set('id', videoId);
+  endpoint.searchParams.set('key', apiKey);
+
+  try {
+    const response = await fetch(endpoint.toString());
+    if (!response.ok) {
+      console.warn(`[film-site] YouTube Data API check failed for ${videoId} with status ${response.status}. Falling back to iframe probing.`);
+      return null;
+    }
+
+    const payload = await response.json();
+    const item = payload?.items?.[0];
+    if (!item) {
+      return false;
+    }
+
+    return item.status?.embeddable !== false;
+  } catch (error) {
+    console.error(`[film-site] YouTube Data API request failed for ${videoId}. Falling back to iframe probing.`, error);
+    return null;
+  }
+}
+
+function loadYouTubeIframeApi() {
+  if (window.YT?.Player) {
+    return Promise.resolve(window.YT);
+  }
+
+  if (filmRuntimeState.youtubeApiScriptPromise) {
+    return filmRuntimeState.youtubeApiScriptPromise;
+  }
+
+  filmRuntimeState.youtubeApiScriptPromise = new Promise((resolve, reject) => {
+    const existingScript = document.querySelector('script[data-youtube-iframe-api]');
+    if (!existingScript) {
+      const script = document.createElement('script');
+      script.src = 'https://www.youtube.com/iframe_api';
+      script.async = true;
+      script.dataset.youtubeIframeApi = 'true';
+      script.onerror = () => reject(new Error('Unable to load YouTube Iframe API script.'));
+      document.head.appendChild(script);
+    }
+
+    const maxWaitMs = 8000;
+    const startedAt = Date.now();
+
+    function pollForApi() {
+      if (window.YT?.Player) {
+        resolve(window.YT);
+        return;
+      }
+
+      if (Date.now() - startedAt > maxWaitMs) {
+        reject(new Error('Timed out waiting for YouTube Iframe API.'));
+        return;
+      }
+
+      window.setTimeout(pollForApi, 120);
+    }
+
+    pollForApi();
+  });
+
+  return filmRuntimeState.youtubeApiScriptPromise;
+}
+
+async function checkEmbeddableViaIframeApi(videoId) {
+  try {
+    const YT = await loadYouTubeIframeApi();
+
+    return await new Promise((resolve) => {
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.left = '-9999px';
+      container.style.top = '0';
+      container.style.width = '1px';
+      container.style.height = '1px';
+      container.style.opacity = '0';
+      document.body.appendChild(container);
+
+      let settled = false;
+      const cleanup = () => {
+        container.remove();
+      };
+
+      const settle = (result) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve(result);
+      };
+
+      window.setTimeout(() => {
+        console.warn(`[film-site] Timed out probing embeddability for ${videoId}. Marking as external-only to avoid a broken modal.`);
+        settle(false);
+      }, 8000);
+
+      try {
+        // We intentionally use the Player API because blocked embeds trigger onError (101/150),
+        // allowing us to detect non-embeddable videos before the user clicks.
+        // eslint-disable-next-line no-new
+        new YT.Player(container, {
+          width: '1',
+          height: '1',
+          videoId,
+          playerVars: {
+            autoplay: 0,
+            rel: 0,
+            playsinline: 1
+          },
+          events: {
+            onReady: () => settle(true),
+            onError: () => settle(false)
+          }
+        });
+      } catch (error) {
+        console.error(`[film-site] Failed to probe embeddability via Iframe API for ${videoId}.`, error);
+        settle(false);
+      }
+    });
+  } catch (error) {
+    console.error(`[film-site] Could not initialize YouTube Iframe API. Marking ${videoId} as external-only.`, error);
+    return false;
+  }
+}
+
+async function checkEmbeddable(videoId) {
+  const apiResult = await fetchEmbeddableFromApi(videoId, getYouTubeApiKey());
+  if (typeof apiResult === 'boolean') {
+    return apiResult;
+  }
+
+  return checkEmbeddableViaIframeApi(videoId);
+}
+
+async function deriveFilmData(film) {
+  const videoId = parseVideoId(film.videoUrl);
+  if (!videoId) {
+    return {
+      ...film,
+      videoId: null,
+      embedUrl: null,
+      watchUrl: film.videoUrl,
+      isEmbeddable: false
+    };
+  }
+
+  const isEmbeddable = await checkEmbeddable(videoId);
+
+  return {
+    ...film,
+    videoId,
+    embedUrl: toEmbedUrl(videoId),
+    watchUrl: toWatchUrl(videoId),
+    isEmbeddable
+  };
+}
+
 function escapeHtml(text) {
   return String(text)
     .replaceAll('&', '&amp;')
@@ -72,7 +263,7 @@ function escapeHtml(text) {
 }
 
 function getFilmByVideoId(videoId) {
-  return films.find((film) => extractYouTubeId(film.videoUrl) === videoId) || null;
+  return filmRuntimeState.films.find((film) => film.videoId === videoId) || null;
 }
 
 function parseVideoRoute(pathname = window.location.pathname) {
@@ -115,7 +306,24 @@ function closeVideoDetail({ shouldNavigate = true, returnFocus = true } = {}) {
   }
 }
 
-function renderVideoDetailFullScreen(film, videoId) {
+function renderVideoDetailFullScreen(film) {
+  const playerMarkup = film.isEmbeddable
+    ? `
+        <iframe
+          src="${film.embedUrl}&autoplay=1"
+          title="Player for ${escapeHtml(film.title)}"
+          loading="lazy"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+        ></iframe>
+      `
+    : `
+        <div class="video-detail-fallback">
+          <p>This video can only be watched directly on YouTube.</p>
+          <a class="btn primary clickable" href="${film.watchUrl}" target="_blank" rel="noopener noreferrer">Watch on YouTube</a>
+        </div>
+      `;
+
   return `
     <section class="video-detail" role="dialog" aria-modal="true" aria-labelledby="video-detail-title">
       <button class="video-detail-close clickable" type="button" aria-label="Close video details">
@@ -123,13 +331,7 @@ function renderVideoDetailFullScreen(film, videoId) {
       </button>
       <div class="video-detail-content">
         <div class="video-detail-player-wrap">
-          <iframe
-            src="https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&enablejsapi=1"
-            title="Player for ${escapeHtml(film.title)}"
-            loading="lazy"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowfullscreen
-          ></iframe>
+          ${playerMarkup}
         </div>
         <div class="video-detail-meta">
           <p class="eyebrow">Video Detail</p>
@@ -154,7 +356,7 @@ function openVideoDetail(videoId, { shouldNavigate = true, triggerElement = null
 
   const container = ensureVideoDetailContainer();
   container.hidden = false;
-  container.innerHTML = renderVideoDetailFullScreen(film, videoId);
+  container.innerHTML = renderVideoDetailFullScreen(film);
   container.classList.add('open');
   document.body.classList.add('video-detail-open');
 
@@ -167,7 +369,7 @@ function openVideoDetail(videoId, { shouldNavigate = true, triggerElement = null
 }
 
 function createVideoCard(film) {
-  const id = extractYouTubeId(film.videoUrl);
+  const id = film.videoId;
   if (!id) {
     console.error(`[film-site] Skipping film card because video ID could not be extracted for "${film.title}".`);
     return '';
@@ -181,7 +383,14 @@ function createVideoCard(film) {
   return `
     <article class="film-card" data-video-id="${id}">
       <div class="video-shell">
-        <button class="play-video clickable" type="button" aria-label="Play ${film.title}" data-video-id="${id}">
+        <button
+          class="play-video clickable"
+          type="button"
+          aria-label="${film.isEmbeddable ? `Play ${film.title}` : `Watch ${film.title} on YouTube` }"
+          data-video-id="${id}"
+          data-watch-url="${film.watchUrl}"
+          data-embeddable="${film.isEmbeddable ? 'true' : 'false'}"
+        >
           <img
             src="${maxres}"
             data-fallback-src="${hq}"
@@ -196,122 +405,154 @@ function createVideoCard(film) {
       </div>
       <div class="film-meta">
         <h3>
-          <a class="film-title-link clickable" href="/video/${id}" data-video-detail-link="${id}">${escapeHtml(film.title)}</a>
+          <a
+            class="film-title-link clickable"
+            href="${film.isEmbeddable ? `/video/${id}` : film.watchUrl}"
+            ${film.isEmbeddable ? `data-video-detail-link="${id}"` : 'target="_blank" rel="noopener noreferrer"'}
+            data-embeddable="${film.isEmbeddable ? 'true' : 'false'}"
+            data-watch-url="${film.watchUrl}"
+          >${escapeHtml(film.title)}</a>
         </h3>
         <p>${escapeHtml(film.role)}</p>
+        ${film.isEmbeddable ? '' : '<p class="external-only-label">Watch on YouTube</p>'}
       </div>
     </article>
   `;
 }
 
-function initializeFilmShowcase() {
-  const filmGrid = document.querySelector('.film-grid');
-  if (!filmGrid) {
-    logMissingElement('.film-grid');
-    return;
+function openExternalVideo(url) {
+  try {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  } catch (error) {
+    console.error('[film-site] Could not open external YouTube tab.', error);
   }
+}
 
-  const cardsMarkup = films.map(createVideoCard).filter(Boolean).join('');
-  filmGrid.innerHTML = cardsMarkup;
+async function initializeFilmShowcase() {
+  try {
+    const filmGrid = document.querySelector('.film-grid');
+    if (!filmGrid) {
+      logMissingElement('.film-grid');
+      return;
+    }
 
-  if (!cardsMarkup) {
-    console.error('[film-site] Film showcase rendered with 0 playable videos.');
-    return;
-  }
+    filmRuntimeState.films = await Promise.all(films.map((film) => deriveFilmData(film)));
 
-  filmGrid.querySelectorAll('img[data-fallback-src]').forEach((image) => {
-    image.addEventListener('error', () => {
-      const fallback = image.dataset.fallbackSrc;
-      if (!fallback || image.src === fallback) return;
-      image.src = fallback;
-    });
-  });
+    const cardsMarkup = filmRuntimeState.films.map(createVideoCard).filter(Boolean).join('');
+    filmGrid.innerHTML = cardsMarkup;
 
-  function stopOtherVideoPlayers(activeShell) {
-    filmGrid.querySelectorAll('.video-shell iframe').forEach((iframe) => {
-      const shell = iframe.closest('.video-shell');
-      if (shell === activeShell) return;
+    if (!cardsMarkup) {
+      console.error('[film-site] Film showcase rendered with 0 playable videos.');
+      return;
+    }
 
-      iframe.contentWindow?.postMessage(
-        JSON.stringify({
-          event: 'command',
-          func: 'pauseVideo'
-        }),
-        '*'
-      );
-    });
-  }
-
-  filmGrid.addEventListener('click', (event) => {
-    const titleLink = event.target.closest('[data-video-detail-link]');
-    if (titleLink) {
-      event.preventDefault();
-      openVideoDetail(titleLink.dataset.videoDetailLink, {
-        triggerElement: titleLink
+    filmGrid.querySelectorAll('img[data-fallback-src]').forEach((image) => {
+      image.addEventListener('error', () => {
+        const fallback = image.dataset.fallbackSrc;
+        if (!fallback || image.src === fallback) return;
+        image.src = fallback;
       });
-      return;
-    }
-
-    const button = event.target.closest('.play-video');
-    if (!button) return;
-
-    const videoId = button.dataset.videoId;
-    if (!videoId) {
-      console.error('[film-site] Play button clicked without a data-video-id.');
-      return;
-    }
-
-    const shell = button.closest('.video-shell');
-    if (!shell) {
-      console.error('[film-site] Could not find .video-shell for selected video.');
-      return;
-    }
-
-    stopOtherVideoPlayers(shell);
-
-    const iframe = document.createElement('iframe');
-    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&enablejsapi=1`;
-    iframe.title = 'YouTube video player';
-    iframe.loading = 'lazy';
-    iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-    iframe.allowFullscreen = true;
-
-    shell.innerHTML = '';
-    shell.appendChild(iframe);
-  });
-
-  const directVideoId = parseVideoRoute();
-  if (directVideoId) {
-    openVideoDetail(directVideoId, {
-      shouldNavigate: false,
-      triggerElement: null
     });
-  }
 
-  window.addEventListener('popstate', () => {
-    const routedVideoId = parseVideoRoute();
+    function stopOtherVideoPlayers(activeShell) {
+      filmGrid.querySelectorAll('.video-shell iframe').forEach((iframe) => {
+        const shell = iframe.closest('.video-shell');
+        if (shell === activeShell) return;
 
-    if (routedVideoId) {
-      openVideoDetail(routedVideoId, { shouldNavigate: false });
-      return;
+        iframe.contentWindow?.postMessage(
+          JSON.stringify({
+            event: 'command',
+            func: 'pauseVideo'
+          }),
+          '*'
+        );
+      });
     }
 
-    closeVideoDetail({ shouldNavigate: false, returnFocus: false });
-  });
+    filmGrid.addEventListener('click', (event) => {
+      const titleLink = event.target.closest('[data-video-detail-link]');
+      if (titleLink) {
+        const isEmbeddable = titleLink.dataset.embeddable === 'true';
+        if (!isEmbeddable) {
+          return;
+        }
 
-  document.addEventListener('keydown', (event) => {
-    if (event.key !== 'Escape') return;
-    if (!appRouteState.activeFilmId) return;
+        event.preventDefault();
+        openVideoDetail(titleLink.dataset.videoDetailLink, {
+          triggerElement: titleLink
+        });
+        return;
+      }
 
-    closeVideoDetail();
-  });
+      const button = event.target.closest('.play-video');
+      if (!button) return;
 
-  document.body.addEventListener('click', (event) => {
-    const closeButton = event.target.closest('.video-detail-close');
-    if (!closeButton) return;
+      const videoId = button.dataset.videoId;
+      if (!videoId) {
+        console.error('[film-site] Play button clicked without a data-video-id.');
+        return;
+      }
 
-    closeVideoDetail();
-  });
+      const shell = button.closest('.video-shell');
+      if (!shell) {
+        console.error('[film-site] Could not find .video-shell for selected video.');
+        return;
+      }
+
+      const isEmbeddable = button.dataset.embeddable === 'true';
+      if (!isEmbeddable) {
+        openExternalVideo(button.dataset.watchUrl || toWatchUrl(videoId));
+        return;
+      }
+
+      stopOtherVideoPlayers(shell);
+
+      const iframe = document.createElement('iframe');
+      iframe.src = toEmbedUrl(videoId, { autoplay: true });
+      iframe.title = 'YouTube video player';
+      iframe.loading = 'lazy';
+      iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+      iframe.allowFullscreen = true;
+
+      shell.innerHTML = '';
+      shell.appendChild(iframe);
+    });
+
+    const directVideoId = parseVideoRoute();
+    if (directVideoId) {
+      openVideoDetail(directVideoId, {
+        shouldNavigate: false,
+        triggerElement: null
+      });
+    }
+
+    window.addEventListener('popstate', () => {
+      const routedVideoId = parseVideoRoute();
+
+      if (routedVideoId) {
+        openVideoDetail(routedVideoId, { shouldNavigate: false });
+        return;
+      }
+
+      closeVideoDetail({ shouldNavigate: false, returnFocus: false });
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      if (!appRouteState.activeFilmId) return;
+
+      closeVideoDetail();
+    });
+
+    document.body.addEventListener('click', (event) => {
+      const closeButton = event.target.closest('.video-detail-close');
+      if (!closeButton) return;
+
+      closeVideoDetail();
+    });
+  } catch (error) {
+    console.error('[film-site] initializeFilmShowcase failed safely.', error);
+  }
 }
 
 function initializeAnimation() {
@@ -472,7 +713,7 @@ function initializeCursorAndNav() {
 
 // Waiting for DOMContentLoaded ensures element queries are reliable in production where scripts can execute earlier than expected.
 document.addEventListener('DOMContentLoaded', () => {
-  initializeFilmShowcase();
+  void initializeFilmShowcase();
   initializeAnimation();
   initializeSmoothScroll();
   initializeContactCta();
