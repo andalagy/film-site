@@ -655,6 +655,10 @@ function initializeThumbnailFallbacks(container) {
         return;
       }
 
+      if (image.dataset.thumbFallbackComplete === 'true') {
+        return;
+      }
+
       const fallbackList = (image.dataset.thumbFallbacks || '').split('|').filter(Boolean);
       if (!fallbackList.length) {
         return;
@@ -664,7 +668,7 @@ function initializeThumbnailFallbacks(container) {
       const nextIndex = currentIndex + 1;
 
       if (nextIndex >= fallbackList.length) {
-        image.removeAttribute('data-thumb-fallback-index');
+        image.dataset.thumbFallbackComplete = 'true';
         return;
       }
 
@@ -758,6 +762,12 @@ async function initializeFilmShowcase() {
 }
 
 function initializeAnimation() {
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (prefersReducedMotion) {
+    return;
+  }
+
   if (!window.gsap) {
     console.error('[film-site] GSAP not found. Animation setup skipped.');
     return;
@@ -797,19 +807,6 @@ function initializeAnimation() {
     });
   });
 
-  gsap.utils.toArray('.parallax').forEach((card) => {
-    const speed = Number(card.dataset.speed) || 0.2;
-    gsap.to(card, {
-      yPercent: -20 * speed * 10,
-      ease: 'none',
-      scrollTrigger: window.ScrollTrigger
-        ? {
-            trigger: card,
-            scrub: true
-          }
-        : undefined
-    });
-  });
 }
 
 function initializeSmoothScroll() {
@@ -913,10 +910,82 @@ function initializeCursorAndNav() {
   });
 }
 
+function initializeDirectorsSlate() {
+  const slate = document.querySelector('[data-directors-slate]');
+  const takeButton = document.querySelector('[data-slate-take]');
+  const sceneNode = document.querySelector('[data-scene]');
+  const takeNode = document.querySelector('[data-take]');
+  const rollNode = document.querySelector('[data-roll]');
+
+  if (!slate || !takeButton || !sceneNode || !takeNode || !rollNode) {
+    return;
+  }
+
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let scene = 1;
+  let take = 1;
+  let roll = 1;
+
+  const formatNumber = (value) => String(value).padStart(2, '0');
+
+  takeButton.addEventListener('click', () => {
+    take += 1;
+
+    if (take > 5) {
+      take = 1;
+      scene = (scene % 12) + 1;
+      roll += 1;
+    }
+
+    sceneNode.textContent = formatNumber(scene);
+    takeNode.textContent = formatNumber(take);
+    rollNode.textContent = `A${formatNumber(roll)}`;
+
+    if (!prefersReducedMotion) {
+      slate.classList.add('is-clapped');
+      window.setTimeout(() => {
+        slate.classList.remove('is-clapped');
+      }, 210);
+    }
+  });
+}
+
+function initializeInteractiveLab() {
+  const promptNode = document.querySelector('[data-scene-prompt]');
+  const nextPromptButton = document.querySelector('[data-next-prompt]');
+  const grainControl = document.querySelector('[data-grain-control]');
+  const noiseLayer = document.querySelector('.noise');
+
+  const prompts = [
+    'A hallway where every footstep sounds like it belongs to someone else.',
+    'A quiet kitchen lit only by a refrigerator door that never closes.',
+    'Two strangers share an umbrella and both pretend not to recognize each other.',
+    'A city rooftop where the wind carries last year\'s unanswered apology.'
+  ];
+
+  if (promptNode && nextPromptButton) {
+    let promptIndex = 0;
+
+    nextPromptButton.addEventListener('click', () => {
+      promptIndex = (promptIndex + 1) % prompts.length;
+      promptNode.textContent = prompts[promptIndex];
+    });
+  }
+
+  if (grainControl && noiseLayer) {
+    grainControl.addEventListener('input', () => {
+      const nextOpacity = Number(grainControl.value) / 100;
+      noiseLayer.style.opacity = String(nextOpacity);
+    });
+  }
+}
+
 // Waiting for DOMContentLoaded ensures element queries are reliable in production where scripts can execute earlier than expected.
 document.addEventListener('DOMContentLoaded', () => {
   initializeGlobalCursorLock(window.CURSOR_LOCK_CONFIG);
   void initializeFilmShowcase();
+  initializeDirectorsSlate();
+  initializeInteractiveLab();
   initializeAnimation();
   initializeSmoothScroll();
   initializeContactCta();

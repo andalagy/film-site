@@ -25,32 +25,40 @@
       <button class="menu-toggle" aria-label="Toggle menu" aria-expanded="false">Menu</button>
       <nav class="site-nav" aria-label="Main navigation">
         <a href="#films">Films</a>
-        <a href="#projects">Projects</a>
+        <a href="#slate">Intro</a>
         <a href="#about">About</a>
         <a href="#contact">Contact</a>
       </nav>
     </header>
 
     <main>
-      <section class="hero" id="hero">
-        <video
-          class="hero-video"
-          autoplay
-          muted
-          loop
-          playsinline
-          poster="https://unsplash.com/photos/an-empty-parking-lot-at-night-with-street-lights-rYYt_9KSs8I?auto=format&fit=crop&w=1600&q=80"
-        >
-          <source src="https://cdn.coverr.co/videos/coverr-shadow-of-a-man-walking-in-the-city-1578533180211?download=1080p" type="video/mp4" />
-        </video>
+      <section class="hero" id="slate">
         <div class="hero-content">
-          <p class="eyebrow">Student Filmmaker • Director • Cinematographer</p>
-          <h1 class="reveal">Emotionally charged films that live between realities and dreams.</h1>
-          <div class="hero-actions">
-            <a href="#films" class="btn primary magnetic">Films</a>
-            <a href="#projects" class="btn magnetic">Projects</a>
-            <a href="#about" class="btn magnetic">About</a>
-          </div>
+          <article class="directors-slate" data-directors-slate>
+            <p class="eyebrow">Director's Slate</p>
+            <h1 class="reveal">Andrew Yan — Director / Writer</h1>
+            <p class="slate-statement">
+              I make films that stay in the silence after the credits. My work follows memory, tension, and unresolved emotion through minimal, atmospheric frames.
+            </p>
+            <div class="slate-credits" aria-label="Creative credits">
+              <span>Director</span>
+              <span>Writer</span>
+              <span>Editor</span>
+              <span>Cinematographer</span>
+              <span>Sound Design</span>
+            </div>
+            <div class="slate-meta" aria-live="polite">
+              <p>SCENE <strong data-scene>01</strong></p>
+              <p>TAKE <strong data-take>01</strong></p>
+              <p>ROLL <strong data-roll>A01</strong></p>
+            </div>
+            <div class="hero-actions">
+              <button class="btn primary magnetic" type="button" data-slate-take aria-label="Clap slate and increment take">
+                Clap TAKE
+              </button>
+              <a href="#films" class="btn magnetic">View Films</a>
+            </div>
+          </article>
         </div>
       </section>
 
@@ -63,23 +71,24 @@
         <div class="film-grid" aria-live="polite"></div>
       </section>
 
-      <section class="section projects" id="projects">
+      <section class="section interactive-lab" id="lab">
         <div class="section-head">
-          <p class="eyebrow">Beyond Film</p>
-          <h2>Creative Projects</h2>
+          <p class="eyebrow">Cinematic Play</p>
+          <h2>After-Cut Interactions</h2>
         </div>
-        <div class="project-track">
-          <article class="project-card parallax" data-speed="0.15">
-            <h3>48-Hour Short Challenge</h3>
-            <p>Directed a one-location short in a weekend, focusing on practical lighting and rhythm editing.</p>
+        <div class="lab-grid">
+          <article class="lab-card">
+            <h3>Scene Prompt Generator</h3>
+            <p data-scene-prompt>
+              A hallway where every footstep sounds like it belongs to someone else.
+            </p>
+            <button class="btn magnetic" type="button" data-next-prompt aria-label="Generate next scene prompt">Next Prompt</button>
           </article>
-          <article class="project-card parallax" data-speed="0.23">
-            <h3>Festival Visual Package</h3>
-            <p>Designed motion title sequences and teaser cuts for student film festival campaigns.</p>
-          </article>
-          <article class="project-card parallax" data-speed="0.18">
-            <h3>Moodboard Sessions</h3>
-            <p>A recurring audiovisual diary blending stills, ambient sound, and poetic voice notes.</p>
+          <article class="lab-card">
+            <h3>Grain Intensity</h3>
+            <p>Dial the monochrome grain texture for your viewing mood.</p>
+            <label for="grain-control" class="eyebrow">Noise Level</label>
+            <input id="grain-control" type="range" min="2" max="10" value="6" data-grain-control aria-label="Adjust film grain intensity" />
           </article>
         </div>
       </section>
@@ -90,7 +99,7 @@
           <h2>About Andrew</h2>
         </div>
         <div class="about-layout">
-          <img src="https://69914d1f681c79fa0bcd66be.imgix.net/pfp.jpg?w=800&h=800" />
+          <img src="https://69914d1f681c79fa0bcd66be.imgix.net/pfp.jpg?w=800&h=800" alt="Portrait of Andrew Yan" />
           <div>
             <p>
               His writing focuses on moments just before something is named—when memory, sound, and emotion are still unsettled. Dialogue circles rather than explains. Ordinary places shift quietly, time bends, and meaning arrives late, if at all.
@@ -107,7 +116,7 @@
       </section>
 
       <section class="section contact" id="contact">
-        <h2>Let’s build something unforgettable.</h2>
+        <h2>andalagy</h2>
         <a
           class="btn primary magnetic"
           href="mailto:g13901913371@gmail.com?subject=Hello%20Andrew"
