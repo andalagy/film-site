@@ -482,6 +482,33 @@ body.video-detail-open {
   padding-bottom: 7rem;
 }
 
+.main-wordmark {
+  display: block;
+  width: fit-content;
+  margin: clamp(5rem, 12vw, 10rem) auto 0;
+  transform: translateY(46%);
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(3rem, 16vw, 11rem);
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  text-decoration: none;
+  transition: opacity 180ms ease, letter-spacing 180ms ease;
+}
+
+.main-wordmark:hover,
+.main-wordmark:focus-visible {
+  opacity: 0.78;
+  letter-spacing: 0.035em;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+body.video-detail-open .main-wordmark {
+  display: none;
+}
+
 @media (max-width: 900px) {
   .about-layout {
     grid-template-columns: 1fr;

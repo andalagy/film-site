@@ -39,6 +39,8 @@ const filmRuntimeState = {
   youtubeApiScriptPromise: null
 };
 
+const MAIN_WORDMARK_LINK = 'https://andalagy.com';
+
 function logMissingElement(name) {
   console.error(`[film-site] Required element missing: ${name}. Feature initialization was skipped safely.`);
 }
@@ -579,6 +581,24 @@ function openVideoDetail(videoId, { shouldNavigate = true, triggerElement = null
   }
 }
 
+function initializeMainWordmark() {
+  const main = document.querySelector('main');
+  if (!main) {
+    logMissingElement('main');
+    return;
+  }
+
+  // Brand wordmark intentionally placed on the Main page only as a signature element.
+  const wordmark = document.createElement('a');
+  wordmark.className = 'main-wordmark clickable';
+  wordmark.href = MAIN_WORDMARK_LINK;
+  wordmark.target = '_blank';
+  wordmark.rel = 'noopener noreferrer';
+  wordmark.setAttribute('aria-label', 'Visit andalagy in a new tab');
+  wordmark.textContent = 'andalagy';
+  main.appendChild(wordmark);
+}
+
 function createVideoCard(film) {
   const id = film.videoId;
   if (!id) {
@@ -916,6 +936,7 @@ function initializeCursorAndNav() {
 // Waiting for DOMContentLoaded ensures element queries are reliable in production where scripts can execute earlier than expected.
 document.addEventListener('DOMContentLoaded', () => {
   initializeGlobalCursorLock(window.CURSOR_LOCK_CONFIG);
+  initializeMainWordmark();
   void initializeFilmShowcase();
   initializeAnimation();
   initializeSmoothScroll();
