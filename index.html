@@ -14,7 +14,8 @@
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Syne:wght@500;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/styles.css" />
+    <!-- Keep global stylesheet loaded here so every page inherits the cinematic theme. -->
+    <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <div class="draft-overlay" aria-hidden="true">
@@ -25,13 +26,13 @@
     <div class="cursor" aria-hidden="true"></div>
 
     <header class="site-header" id="top">
-      <a href="/" class="brand" data-route-link="/">AY / FILM</a>
+      <a href="./" class="brand" data-route-link="/">AY / FILM</a>
       <button class="menu-toggle" aria-label="Toggle menu" aria-expanded="false">Menu</button>
       <nav class="site-nav" aria-label="Main navigation">
-        <a href="/" data-route-link="/">Home</a>
-        <a href="/films" data-route-link="/films">Films</a>
-        <a href="/#about">About</a>
-        <a href="/#contact">Contact</a>
+        <a href="./" data-route-link="/">Home</a>
+        <a href="./films/" data-route-link="/films">Films</a>
+        <a href="./#about">About</a>
+        <a href="./#contact">Contact</a>
       </nav>
     </header>
 
@@ -125,8 +126,8 @@
     <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/bundled/lenis.min.js"></script>
-    <script defer src="/youtube-utils.js"></script>
-    <script defer src="/films.js"></script>
-    <script defer src="/script.js"></script>
+    <script defer src="./youtube-utils.js"></script>
+    <script defer src="./films.js"></script>
+    <script defer src="./script.js"></script>
   </body>
 </html>
