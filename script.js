@@ -401,12 +401,18 @@ function initializeContactCta() {
   const contactEmail = sayHelloLink.dataset.email || '';
 
   sayHelloLink.addEventListener('click', async () => {
+    if (feedback) {
+      feedback.hidden = false;
+      feedback.textContent = contactEmail
+        ? `If your mail app did not open, email me at: ${contactEmail}`
+        : 'If your mail app did not open, please use the contact email listed on this page.';
+    }
+
     if (!navigator.clipboard || !contactEmail) return;
 
     try {
       await navigator.clipboard.writeText(contactEmail);
       if (feedback) {
-        feedback.hidden = false;
         feedback.textContent = `If your mail app did not open, the address was copied: ${contactEmail}`;
       }
     } catch (error) {
