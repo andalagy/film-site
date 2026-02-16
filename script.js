@@ -1,4 +1,5 @@
 const films = Array.isArray(window.FILMS_DATA) ? window.FILMS_DATA : [];
+const APP_BASE_PATH = '/andalagy';
 
 const appRouteState = {
   previousFocus: null,
@@ -13,11 +14,42 @@ function logMissingElement(name) {
   console.error(`[film-site] Required element missing: ${name}. Feature initialization was skipped safely.`);
 }
 
+function trimTrailingSlash(path) {
+  return path.replace(/\/+$/, '') || '/';
+}
+
+function stripBasePath(pathname = window.location.pathname) {
+  const normalizedPath = trimTrailingSlash(pathname);
+  const normalizedBase = trimTrailingSlash(APP_BASE_PATH);
+
+  if (normalizedBase === '/') return normalizedPath;
+  if (normalizedPath === normalizedBase) return '/';
+  if (normalizedPath.startsWith(`${normalizedBase}/`)) {
+    return normalizedPath.slice(normalizedBase.length) || '/';
+  }
+
+  return normalizedPath;
+}
+
+function toAppUrl(routePath = '/') {
+  const normalizedRoute = routePath.startsWith('/') ? routePath : `/${routePath}`;
+  if (normalizedRoute === '/') return `${APP_BASE_PATH}/`;
+  return `${APP_BASE_PATH}${normalizedRoute}`;
+}
+
+function navigateToRoute(routePath, state = {}) {
+  const targetUrl = toAppUrl(routePath);
+  if (`${window.location.pathname}${window.location.search}${window.location.hash}` === targetUrl) return;
+  history.pushState(state, '', targetUrl);
+}
+
 function getAppRoute(pathname = window.location.pathname) {
-  const normalizedPath = pathname.replace(/\/+$/, '') || '/';
+  const normalizedPath = stripBasePath(pathname);
 
   if (normalizedPath === '/') return { page: 'home', filmId: null };
   if (normalizedPath === '/films') return { page: 'films', filmId: null };
+  if (normalizedPath === '/about') return { page: 'about', filmId: null };
+  if (normalizedPath === '/contact') return { page: 'contact', filmId: null };
 
   const detailMatch = normalizedPath.match(/^\/films\/([^/]+)$/);
   if (detailMatch) {
@@ -39,8 +71,8 @@ function applyRouteLayout(route = getAppRoute()) {
   });
 
   document.querySelectorAll('[data-route-link]').forEach((link) => {
-    const href = link.getAttribute('href');
-    const isActive = (route.page === 'home' && href === '/') || (route.page === 'films' && href === '/films');
+    const linkRoute = link.getAttribute('data-route-link');
+    const isActive = linkRoute === route.page;
     link.classList.toggle('is-active', isActive);
     link.setAttribute('aria-current', isActive ? 'page' : 'false');
   });
@@ -297,7 +329,7 @@ function closeVideoDetail({ shouldNavigate = true, returnFocus = true } = {}) {
   appRouteState.activeFilmId = null;
 
   if (shouldNavigate && getAppRoute().filmId) {
-    history.pushState({}, '', '/films');
+    navigateToRoute('/films');
     applyRouteLayout(getAppRoute());
   }
 
@@ -348,7 +380,7 @@ function openVideoDetail(videoId, { shouldNavigate = true, triggerElement = null
     document.body.classList.add('video-detail-open');
     appRouteState.activeFilmId = null;
     if (shouldNavigate && getAppRoute().filmId !== videoId) {
-      history.pushState({ videoId }, '', `/films/${encodeURIComponent(videoId)}`);
+      navigateToRoute(`/films/${encodeURIComponent(videoId)}`, { videoId });
       applyRouteLayout(getAppRoute());
     }
     return;
@@ -366,7 +398,7 @@ function openVideoDetail(videoId, { shouldNavigate = true, triggerElement = null
   container.querySelector('.video-detail-close')?.focus();
 
   if (shouldNavigate && getAppRoute().filmId !== videoId) {
-    history.pushState({ videoId }, '', `/films/${encodeURIComponent(videoId)}`);
+    navigateToRoute(`/films/${encodeURIComponent(videoId)}`, { videoId });
     applyRouteLayout(getAppRoute());
   }
 }
@@ -379,13 +411,13 @@ function createVideoCard(film) {
     <article class="film-card draft-panel" data-video-id="${id}" data-video-detail-link="${id}" role="link" tabindex="0" aria-label="Open details for ${escapeHtml(film.title)}">
       <span class="micro-label">PROJECT ${escapeHtml(id.slice(0, 4).toUpperCase())}</span>
       <div class="video-shell">
-        <a class="video-thumb-link clickable" href="/films/${id}" data-video-detail-link="${id}" aria-label="Open details for ${escapeHtml(film.title)}">
+        <a class="video-thumb-link clickable" href="${toAppUrl(`/films/${id}`)}" data-video-detail-link="${id}" aria-label="Open details for ${escapeHtml(film.title)}">
           <img src="${film.thumbnailUrl}" alt="${escapeHtml(film.title)}" loading="lazy" decoding="async" data-thumb-fallback-index="0" data-thumb-fallbacks="${escapeHtml((film.thumbnailCandidates || []).join('|'))}" />
           <span class="video-overlay"><span class="play-button-overlay" role="img" aria-label="Play video"><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle cx="32" cy="32" r="31" class="play-button-ring" /><path d="M26 21.5L44.5 32L26 42.5V21.5Z" class="play-button-triangle" /></svg></span></span>
         </a>
       </div>
       <div class="film-meta">
-        <h3><a class="film-title-link clickable" href="/films/${id}" data-video-detail-link="${id}">${escapeHtml(film.title)}</a></h3>
+        <h3><a class="film-title-link clickable" href="${toAppUrl(`/films/${id}`)}" data-video-detail-link="${id}">${escapeHtml(film.title)}</a></h3>
         <p>${escapeHtml(film.details || film.role || '')}</p>
       </div>
     </article>`;
@@ -564,12 +596,11 @@ function initializeCursorAndNav() {
   document.querySelectorAll('[data-route-link]').forEach((link) => {
     link.addEventListener('click', (event) => {
       const href = link.getAttribute('href');
-      if (!href || !href.startsWith('/')) return;
+      const routePath = link.getAttribute('data-route-path');
+      if (!href || !routePath) return;
 
       event.preventDefault();
-      if (window.location.pathname !== href) {
-        history.pushState({}, '', href);
-      }
+      navigateToRoute(routePath);
       applyRouteLayout(getAppRoute());
       closeVideoDetail({ shouldNavigate: false, returnFocus: false });
       window.scrollTo({ top: 0, behavior: 'auto' });
@@ -603,7 +634,7 @@ function initializeDirectorSlateComponent() {
   const formatNumber = (value) => String(value).padStart(2, '0');
 
   const scrollToFilms = () => {
-    history.pushState({}, '', '/films');
+    navigateToRoute('/films');
     applyRouteLayout(getAppRoute());
     window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
   };

@@ -14,6 +14,17 @@
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Syne:wght@500;700;800&display=swap"
       rel="stylesheet"
     />
+    <script>
+      (function (location) {
+        if (location.search[1] !== '/') return;
+        const decoded = location.search
+          .slice(1)
+          .split('&')
+          .map((segment) => segment.replace(/~and~/g, '&'))
+          .join('?');
+        window.history.replaceState(null, '', location.pathname.slice(0, -1) + decoded + location.hash);
+      })(window.location);
+    </script>
     <!-- Keep global stylesheet loaded here so every page inherits the cinematic theme. -->
     <link rel="stylesheet" href="../styles.css" />
   </head>
@@ -26,13 +37,13 @@
     <div class="cursor" aria-hidden="true"></div>
 
     <header class="site-header" id="top">
-      <a href="../" class="brand" data-route-link="/">AY / FILM</a>
+      <a href="/andalagy/" class="brand" data-route-link="home" data-route-path="/">AY / FILM</a>
       <button class="menu-toggle" aria-label="Toggle menu" aria-expanded="false">Menu</button>
       <nav class="site-nav" aria-label="Main navigation">
-        <a href="../" data-route-link="/">Home</a>
-        <a href="./" data-route-link="/films">Films</a>
-        <a href="../#about">About</a>
-        <a href="../#contact">Contact</a>
+        <a href="/andalagy/" data-route-link="home" data-route-path="/">Home</a>
+        <a href="/andalagy/films" data-route-link="films" data-route-path="/films">Films</a>
+        <a href="/andalagy/about" data-route-link="about" data-route-path="/about">About</a>
+        <a href="/andalagy/contact" data-route-link="contact" data-route-path="/contact">Contact</a>
       </nav>
     </header>
 
