@@ -115,6 +115,21 @@ function initializeFilmShowcase() {
     });
   });
 
+  function stopOtherVideoPlayers(activeShell) {
+    filmGrid.querySelectorAll('.video-shell iframe').forEach((iframe) => {
+      const shell = iframe.closest('.video-shell');
+      if (shell === activeShell) return;
+
+      iframe.contentWindow?.postMessage(
+        JSON.stringify({
+          event: 'command',
+          func: 'pauseVideo'
+        }),
+        '*'
+      );
+    });
+  }
+
   filmGrid.addEventListener('click', (event) => {
     const button = event.target.closest('.play-video');
     if (!button) return;
@@ -131,8 +146,10 @@ function initializeFilmShowcase() {
       return;
     }
 
+    stopOtherVideoPlayers(shell);
+
     const iframe = document.createElement('iframe');
-    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&enablejsapi=1`;
     iframe.title = 'YouTube video player';
     iframe.loading = 'lazy';
     iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
