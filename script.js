@@ -28,6 +28,11 @@ const films = [
   }
 ];
 
+const appRouteState = {
+  previousFocus: null,
+  activeFilmId: null
+};
+
 function logMissingElement(name) {
   console.error(`[film-site] Required element missing: ${name}. Feature initialization was skipped safely.`);
 }
@@ -53,6 +58,110 @@ function extractYouTubeId(url) {
   } catch (error) {
     console.error('[film-site] Could not parse YouTube URL:', url, error);
     return null;
+  }
+}
+
+function escapeHtml(text) {
+  return String(text)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function getFilmByVideoId(videoId) {
+  return films.find((film) => extractYouTubeId(film.videoUrl) === videoId) || null;
+}
+
+function parseVideoRoute(pathname = window.location.pathname) {
+  const match = pathname.match(/^\/video\/([^/]+)$/);
+  if (!match) return null;
+  return decodeURIComponent(match[1]);
+}
+
+function getVideoDetailContainer() {
+  return document.querySelector('[data-video-detail]');
+}
+
+function ensureVideoDetailContainer() {
+  let container = getVideoDetailContainer();
+  if (container) return container;
+
+  container = document.createElement('div');
+  container.dataset.videoDetail = 'true';
+  container.className = 'video-detail-layer';
+  document.body.appendChild(container);
+  return container;
+}
+
+function closeVideoDetail({ shouldNavigate = true, returnFocus = true } = {}) {
+  const container = getVideoDetailContainer();
+  if (!container || container.hidden) return;
+
+  container.hidden = true;
+  container.innerHTML = '';
+  container.classList.remove('open');
+  document.body.classList.remove('video-detail-open');
+  appRouteState.activeFilmId = null;
+
+  if (shouldNavigate && parseVideoRoute()) {
+    history.pushState({}, '', '/');
+  }
+
+  if (returnFocus && appRouteState.previousFocus?.focus) {
+    appRouteState.previousFocus.focus();
+  }
+}
+
+function renderVideoDetailFullScreen(film, videoId) {
+  return `
+    <section class="video-detail" role="dialog" aria-modal="true" aria-labelledby="video-detail-title">
+      <button class="video-detail-close clickable" type="button" aria-label="Close video details">
+        ← Back
+      </button>
+      <div class="video-detail-content">
+        <div class="video-detail-player-wrap">
+          <iframe
+            src="https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&enablejsapi=1"
+            title="Player for ${escapeHtml(film.title)}"
+            loading="lazy"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+          ></iframe>
+        </div>
+        <div class="video-detail-meta">
+          <p class="eyebrow">Video Detail</p>
+          <h2 id="video-detail-title">${escapeHtml(film.title)}</h2>
+          <p>${escapeHtml(film.statement || 'No description available.')}</p>
+          <p class="video-detail-role">${escapeHtml(film.role || 'Metadata unavailable')}</p>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function openVideoDetail(videoId, { shouldNavigate = true, triggerElement = null } = {}) {
+  const film = getFilmByVideoId(videoId);
+  if (!film) {
+    console.error(`[film-site] Video detail requested for unknown ID "${videoId}".`);
+    return;
+  }
+
+  appRouteState.activeFilmId = videoId;
+  appRouteState.previousFocus = triggerElement || document.activeElement;
+
+  const container = ensureVideoDetailContainer();
+  container.hidden = false;
+  container.innerHTML = renderVideoDetailFullScreen(film, videoId);
+  container.classList.add('open');
+  document.body.classList.add('video-detail-open');
+
+  const closeButton = container.querySelector('.video-detail-close');
+  closeButton?.focus();
+
+  if (shouldNavigate && parseVideoRoute() !== videoId) {
+    history.pushState({ videoId }, '', `/video/${encodeURIComponent(videoId)}`);
   }
 }
 
@@ -85,8 +194,10 @@ function createVideoCard(film) {
         </button>
       </div>
       <div class="film-meta">
-        <h3>${film.title}</h3>
-        <p>${film.role}</p>
+        <h3>
+          <a class="film-title-link clickable" href="/video/${id}" data-video-detail-link="${id}">${escapeHtml(film.title)}</a>
+        </h3>
+        <p>${escapeHtml(film.role)}</p>
       </div>
     </article>
   `;
@@ -131,6 +242,15 @@ function initializeFilmShowcase() {
   }
 
   filmGrid.addEventListener('click', (event) => {
+    const titleLink = event.target.closest('[data-video-detail-link]');
+    if (titleLink) {
+      event.preventDefault();
+      openVideoDetail(titleLink.dataset.videoDetailLink, {
+        triggerElement: titleLink
+      });
+      return;
+    }
+
     const button = event.target.closest('.play-video');
     if (!button) return;
 
@@ -157,6 +277,39 @@ function initializeFilmShowcase() {
 
     shell.innerHTML = '';
     shell.appendChild(iframe);
+  });
+
+  const directVideoId = parseVideoRoute();
+  if (directVideoId) {
+    openVideoDetail(directVideoId, {
+      shouldNavigate: false,
+      triggerElement: null
+    });
+  }
+
+  window.addEventListener('popstate', () => {
+    const routedVideoId = parseVideoRoute();
+
+    if (routedVideoId) {
+      openVideoDetail(routedVideoId, { shouldNavigate: false });
+      return;
+    }
+
+    closeVideoDetail({ shouldNavigate: false, returnFocus: false });
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    if (!appRouteState.activeFilmId) return;
+
+    closeVideoDetail();
+  });
+
+  document.body.addEventListener('click', (event) => {
+    const closeButton = event.target.closest('.video-detail-close');
+    if (!closeButton) return;
+
+    closeVideoDetail();
   });
 }
 
