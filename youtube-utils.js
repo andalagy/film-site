@@ -38,7 +38,9 @@
     return [
       `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/maxresdefault.jpg`,
       `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg`,
-      `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/mqdefault.jpg`
+      `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/mqdefault.jpg`,
+      `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/sddefault.jpg`,
+      `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/default.jpg`
     ];
   }
 

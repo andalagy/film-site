@@ -227,6 +227,42 @@ function getThumbnailCandidates(videoId) {
   return window.YouTubeUtils?.getYouTubeThumbnailCandidates(videoId) || [];
 }
 
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error(`Image failed to load: ${url}`));
+    image.src = url;
+  });
+}
+
+function isUsableYouTubeThumbnail(url, image) {
+  // YouTube often serves a 120x90 generic placeholder for unavailable higher-tier thumbnails.
+  // We treat that as a failed candidate so we can keep stepping down to a guaranteed valid asset.
+  if (url.endsWith('/default.jpg')) {
+    return true;
+  }
+
+  return image.naturalWidth > 120 && image.naturalHeight > 90;
+}
+
+async function resolveYouTubeThumbnail(videoId) {
+  const candidates = getThumbnailCandidates(videoId);
+
+  for (const candidate of candidates) {
+    try {
+      const loadedImage = await loadImage(candidate);
+      if (isUsableYouTubeThumbnail(candidate, loadedImage)) {
+        return candidate;
+      }
+    } catch (error) {
+      // Try the next candidate.
+    }
+  }
+
+  return null;
+}
+
 
 function toWatchUrl(videoId) {
   return `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
@@ -398,10 +434,12 @@ async function deriveFilmData(film) {
       videoId: null,
       embedUrl: null,
       watchUrl: film.videoUrl,
+      thumbnailUrl: null,
       isEmbeddable: false
     };
   }
 
+  const thumbnailUrl = await resolveYouTubeThumbnail(videoId);
   const isEmbeddable = await checkEmbeddable(videoId);
 
   return {
@@ -409,6 +447,7 @@ async function deriveFilmData(film) {
     videoId,
     embedUrl: toEmbedUrl(videoId),
     watchUrl: toWatchUrl(videoId),
+    thumbnailUrl,
     isEmbeddable
   };
 }
@@ -535,17 +574,15 @@ function createVideoCard(film) {
     return '';
   }
 
-  const thumbnailCandidates = getThumbnailCandidates(id);
-  const [preferredThumbnail] = thumbnailCandidates;
-
-  if (!preferredThumbnail) {
+  if (!film.thumbnailUrl) {
     console.error(`[film-site] Skipping film card because thumbnails could not be generated for "${film.title}".`);
     return '';
   }
 
   // Preview environments sometimes load scripts before HTML is fully parsed.
   // Rendering plain markup and binding click handlers later prevents live-site race conditions.
-  // We generate direct YouTube image URLs ourselves because embed/oEmbed preview metadata can vary and be cached inconsistently.
+  // We generate and verify YouTube image URLs ourselves because iframe/oEmbed previews can return stale or placeholder
+  // thumbnails without a network error, which makes embedded preview thumbnails unreliable.
   return `
     <article class="film-card" data-video-id="${id}">
       <div class="video-shell">
@@ -557,9 +594,7 @@ function createVideoCard(film) {
           aria-label="Play video: ${escapeHtml(film.title)}"
         >
           <img
-            src="${preferredThumbnail}"
-            data-thumb-candidates='${JSON.stringify(thumbnailCandidates)}'
-            data-thumb-index="0"
+            src="${film.thumbnailUrl}"
             alt="${escapeHtml(film.title)}"
             loading="lazy"
             decoding="async"
@@ -608,21 +643,6 @@ async function initializeFilmShowcase() {
       console.error('[film-site] Film showcase rendered with 0 playable videos.');
       return;
     }
-
-    filmGrid.querySelectorAll('img[data-thumb-candidates]').forEach((image) => {
-      image.addEventListener('error', () => {
-        const candidates = JSON.parse(image.dataset.thumbCandidates || '[]');
-        const currentIndex = Number(image.dataset.thumbIndex || 0);
-        const nextIndex = currentIndex + 1;
-
-        if (!candidates[nextIndex]) {
-          return;
-        }
-
-        image.dataset.thumbIndex = String(nextIndex);
-        image.src = candidates[nextIndex];
-      });
-    });
 
     filmGrid.addEventListener('click', (event) => {
       const titleLink = event.target.closest('[data-video-detail-link]');
