@@ -1,37 +1,4 @@
-const films = [
-  {
-    id: '4uJzOTmVHKQ',
-    title: 'northern mockingbird.',
-    role: '2025 • 3 min',
-    statement: 
-      'finding the bird.',
-    videoUrl: 'https://www.youtube.com/embed/4uJzOTmVHKQ'
-  },
-  {
-    id: 'qaAV4v811j8',
-    title: 'the man who waters concrete.',
-    role: 'Director • 2025 • 2 min',
-    statement:
-      'An attempt to grow the concrete. The ending is extremely cornball, where a desperate attempt was made to save the film from bad planning.',
-    videoUrl: 'https://www.youtube.com/embed/qaAV4v811j8'
-  },
-  {
-    id: '-vp76Gp6zoI',
-    title: 'Bohemian Rhapsody',
-    role: 'Director • 2025 • 15 min',
-    statement:
-      'A music video to portray the story behind the widely acclaimed song.',
-    videoUrl: 'https://www.youtube.com/embed/-vp76Gp6zoI'
-  },
-  {
-    id: '9pLS3b_b_oM',
-    title: 'Echoes of Tommorow',
-    role: '2024 • 3 min',
-    statement:
-      'Or maybe in the future of stock footages.',
-    videoUrl: 'https://www.youtube.com/embed/9pLS3b_b_oM'
-  }
-];
+const films = Array.isArray(window.FILMS_DATA) ? window.FILMS_DATA : [];
 
 const appRouteState = {
   previousFocus: null,
@@ -44,6 +11,39 @@ const filmRuntimeState = {
 
 function logMissingElement(name) {
   console.error(`[film-site] Required element missing: ${name}. Feature initialization was skipped safely.`);
+}
+
+function getAppRoute(pathname = window.location.pathname) {
+  const normalizedPath = pathname.replace(/\/+$/, '') || '/';
+
+  if (normalizedPath === '/') return { page: 'home', filmId: null };
+  if (normalizedPath === '/films') return { page: 'films', filmId: null };
+
+  const detailMatch = normalizedPath.match(/^\/films\/([^/]+)$/);
+  if (detailMatch) {
+    return {
+      page: 'films',
+      filmId: decodeURIComponent(detailMatch[1])
+    };
+  }
+
+  return { page: 'home', filmId: null };
+}
+
+function applyRouteLayout(route = getAppRoute()) {
+  document.body.dataset.page = route.page;
+  document.querySelectorAll('[data-route-pane]').forEach((pane) => {
+    const paneRoute = pane.getAttribute('data-route-pane');
+    const shouldShow = paneRoute === route.page;
+    pane.hidden = !shouldShow;
+  });
+
+  document.querySelectorAll('[data-route-link]').forEach((link) => {
+    const href = link.getAttribute('href');
+    const isActive = (route.page === 'home' && href === '/') || (route.page === 'films' && href === '/films');
+    link.classList.toggle('is-active', isActive);
+    link.setAttribute('aria-current', isActive ? 'page' : 'false');
+  });
 }
 
 function initializeGlobalCursorLock(customConfig = {}) {
@@ -93,7 +93,6 @@ function initializeGlobalCursorLock(customConfig = {}) {
     root.classList.remove('cursor-restored');
     root.classList.add('cursor-hidden');
 
-    // Force key roots to `cursor: none` to mitigate inline style overrides from third-party widgets.
     document.body?.style.setProperty('cursor', 'none', 'important');
     document.documentElement.style.setProperty('cursor', 'none', 'important');
 
@@ -125,20 +124,14 @@ function initializeGlobalCursorLock(customConfig = {}) {
     typeof CSS !== 'undefined' && typeof CSS.supports === 'function' && CSS.supports('cursor', 'none');
 
   if (!browserSupportsCursorNone) {
-    // Fallback: when a browser does not support `cursor: none`, we keep the default cursor
-    // and avoid a broken "half-hidden" state.
     root.classList.remove('cursor-hidden');
     root.classList.add('cursor-restored');
     console.warn('[cursor-lock] Browser does not support `cursor: none`; using default cursor fallback.');
-    return {
-      active: false,
-      reason: 'unsupported-browser'
-    };
+    return { active: false, reason: 'unsupported-browser' };
   }
 
   lockCursor();
 
-  // Verify once after styles settle. If cursor still resolves to non-`none`, fallback cleanly.
   window.setTimeout(() => {
     const cursorValue = window.getComputedStyle(document.body).cursor;
     if (cursorValue !== 'none' && !cursorValue.includes('none')) {
@@ -179,7 +172,6 @@ function initializeGlobalCursorLock(customConfig = {}) {
     attributeFilter: ['style', 'class']
   });
 
-  // Some embedded or dynamic components change cursor on interaction events.
   ['pointerover', 'mousemove', 'mouseenter', 'focusin'].forEach((eventName) => {
     document.addEventListener(
       eventName,
@@ -222,45 +214,9 @@ function initializeGlobalCursorLock(customConfig = {}) {
   };
 }
 
-function parseVideoId(url) {
-  const parsedId = window.YouTubeUtils?.extractYouTubeVideoId(url) || null;
-  return assertYouTubeId(parsedId) ? parsedId : null;
-}
-
 function assertYouTubeId(id) {
   return typeof id === 'string' && /^[A-Za-z0-9_-]{11}$/.test(id);
 }
-
-function isDevEnvironment() {
-  return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-}
-
-function normalizeFilmData(rawFilms) {
-  return rawFilms.map((film, index) => {
-    const normalizedId = assertYouTubeId(film.id) ? film.id : parseVideoId(film.videoUrl);
-
-    if (!assertYouTubeId(normalizedId) && isDevEnvironment()) {
-      console.warn(
-        `[film-site] Film at index ${index} has a missing or invalid YouTube id.`,
-        {
-          title: film.title,
-          id: film.id || null,
-          videoUrl: film.videoUrl || null
-        }
-      );
-    }
-
-    return {
-      ...film,
-      videoId: assertYouTubeId(normalizedId) ? normalizedId : null,
-      thumbnailCandidates: getDeterministicThumbnailFallbacks(normalizedId),
-      thumbnailUrl: assertYouTubeId(normalizedId)
-        ? `https://img.youtube.com/vi/${encodeURIComponent(normalizedId)}/hqdefault.jpg`
-        : null
-    };
-  });
-}
-
 
 function getDeterministicThumbnailFallbacks(videoId) {
   if (!assertYouTubeId(videoId)) return [];
@@ -277,6 +233,11 @@ function buildEmbedSrc(videoId) {
   return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}`;
 }
 
+function parseVideoIdFromUrl(url) {
+  const parsedId = window.YouTubeUtils?.extractYouTubeVideoId(url) || null;
+  return assertYouTubeId(parsedId) ? parsedId : null;
+}
+
 function escapeHtml(text) {
   return String(text)
     .replaceAll('&', '&amp;')
@@ -286,14 +247,28 @@ function escapeHtml(text) {
     .replaceAll("'", '&#39;');
 }
 
-function getFilmByVideoId(videoId) {
-  return filmRuntimeState.films.find((film) => film.videoId === videoId) || null;
+function normalizeFilmData(rawFilms) {
+  return rawFilms.map((film) => {
+    const normalizedId = assertYouTubeId(film.id) ? film.id : parseVideoIdFromUrl(film.videoUrl || '');
+    const yearLabel = Number.isInteger(film.year) ? String(film.year) : null;
+    const runtimeLabel = typeof film.runtime === 'string' && film.runtime.trim() ? film.runtime.trim() : null;
+    const roleLabel = typeof film.role === 'string' && film.role.trim() ? film.role.trim() : 'Director';
+    const details = [roleLabel, yearLabel, runtimeLabel].filter(Boolean).join(' • ');
+
+    return {
+      ...film,
+      videoId: normalizedId,
+      details,
+      thumbnailCandidates: getDeterministicThumbnailFallbacks(normalizedId),
+      thumbnailUrl: assertYouTubeId(normalizedId)
+        ? `https://img.youtube.com/vi/${encodeURIComponent(normalizedId)}/hqdefault.jpg`
+        : null
+    };
+  });
 }
 
-function parseVideoRoute(pathname = window.location.pathname) {
-  const match = pathname.match(/^\/(?:films|video)\/([^/]+)$/);
-  if (!match) return null;
-  return decodeURIComponent(match[1]);
+function getFilmByVideoId(videoId) {
+  return filmRuntimeState.films.find((film) => film.videoId === videoId) || null;
 }
 
 function getVideoDetailContainer() {
@@ -321,8 +296,9 @@ function closeVideoDetail({ shouldNavigate = true, returnFocus = true } = {}) {
   document.body.classList.remove('video-detail-open');
   appRouteState.activeFilmId = null;
 
-  if (shouldNavigate && parseVideoRoute()) {
-    history.pushState({}, '', '/');
+  if (shouldNavigate && getAppRoute().filmId) {
+    history.pushState({}, '', '/films');
+    applyRouteLayout(getAppRoute());
   }
 
   if (returnFocus && appRouteState.previousFocus?.focus) {
@@ -333,46 +309,48 @@ function closeVideoDetail({ shouldNavigate = true, returnFocus = true } = {}) {
 function renderVideoDetailFullScreen(film) {
   const embedSrc = buildEmbedSrc(film.videoId);
   const playerMarkup = embedSrc
-    ? `
-        <iframe
-          src="${embedSrc}"
-          title="Player for ${escapeHtml(film.title)}"
-          loading="lazy"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-          referrerPolicy="strict-origin-when-cross-origin"
-        ></iframe>
-      `
-    : `
-        <div class="video-detail-fallback">
-          <p>Video unavailable.</p>
-        </div>
-      `;
+    ? `<iframe src="${embedSrc}" title="Player for ${escapeHtml(film.title)}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"></iframe>`
+    : `<div class="video-detail-fallback"><p>Video unavailable.</p></div>`;
 
   return `
     <section class="video-detail" role="dialog" aria-modal="true" aria-labelledby="video-detail-title">
-      <button class="video-detail-close clickable" type="button" aria-label="Close video details">
-        ← Back
-      </button>
+      <button class="video-detail-close clickable" type="button" aria-label="Close video details">← Back</button>
       <div class="video-detail-content">
-        <div class="video-detail-player-wrap">
-          ${playerMarkup}
-        </div>
-        <div class="video-detail-meta">
+        <div class="video-detail-player-wrap">${playerMarkup}</div>
+        <div class="video-detail-meta draft-panel">
           <p class="eyebrow">Video Detail</p>
           <h2 id="video-detail-title">${escapeHtml(film.title)}</h2>
           <p>${escapeHtml(film.statement || 'No description available.')}</p>
-          <p class="video-detail-role">${escapeHtml(film.role || 'Metadata unavailable')}</p>
+          <p class="video-detail-role">${escapeHtml(film.details || film.role || 'Metadata unavailable')}</p>
         </div>
       </div>
-    </section>
-  `;
+    </section>`;
 }
 
 function openVideoDetail(videoId, { shouldNavigate = true, triggerElement = null } = {}) {
   const film = getFilmByVideoId(videoId);
   if (!film) {
-    console.error(`[film-site] Video detail requested for unknown ID "${videoId}".`);
+    const container = ensureVideoDetailContainer();
+    container.hidden = false;
+    container.innerHTML = `
+      <section class="video-detail" role="dialog" aria-modal="true" aria-labelledby="video-detail-title">
+        <button class="video-detail-close clickable" type="button" aria-label="Back to films">← Back</button>
+        <div class="video-detail-content">
+          <div class="video-detail-meta draft-panel video-not-found">
+            <p class="eyebrow">Video Detail</p>
+            <h2 id="video-detail-title">Film not found</h2>
+            <p>This film could not be found in the shared film catalogue.</p>
+            <p class="video-detail-role">Check the film ID in the URL or update <code>films.js</code>.</p>
+          </div>
+        </div>
+      </section>`;
+    container.classList.add('open');
+    document.body.classList.add('video-detail-open');
+    appRouteState.activeFilmId = null;
+    if (shouldNavigate && getAppRoute().filmId !== videoId) {
+      history.pushState({ videoId }, '', `/films/${encodeURIComponent(videoId)}`);
+      applyRouteLayout(getAppRoute());
+    }
     return;
   }
 
@@ -385,76 +363,32 @@ function openVideoDetail(videoId, { shouldNavigate = true, triggerElement = null
   container.classList.add('open');
   document.body.classList.add('video-detail-open');
 
-  const closeButton = container.querySelector('.video-detail-close');
-  closeButton?.focus();
+  container.querySelector('.video-detail-close')?.focus();
 
-  if (shouldNavigate && parseVideoRoute() !== videoId) {
+  if (shouldNavigate && getAppRoute().filmId !== videoId) {
     history.pushState({ videoId }, '', `/films/${encodeURIComponent(videoId)}`);
+    applyRouteLayout(getAppRoute());
   }
 }
 
 function createVideoCard(film) {
   const id = film.videoId;
-  if (!id) {
-    console.error(`[film-site] Skipping film card because video ID could not be extracted for "${film.title}".`);
-    return '';
-  }
+  if (!id || !film.thumbnailUrl) return '';
 
-  if (!film.thumbnailUrl) {
-    console.error(`[film-site] Skipping film card because thumbnails could not be generated for "${film.title}".`);
-    return '';
-  }
-
-  // Preview environments sometimes load scripts before HTML is fully parsed.
-  // Rendering plain markup and binding click handlers later prevents live-site race conditions.
-  // We generate and verify YouTube image URLs ourselves because iframe/oEmbed previews can return stale or placeholder
-  // thumbnails without a network error, which makes embedded preview thumbnails unreliable.
   return `
-    <article
-      class="film-card"
-      data-video-id="${id}"
-      data-video-detail-link="${id}"
-      role="link"
-      tabindex="0"
-      aria-label="Open details for ${escapeHtml(film.title)}"
-    >
+    <article class="film-card draft-panel" data-video-id="${id}" data-video-detail-link="${id}" role="link" tabindex="0" aria-label="Open details for ${escapeHtml(film.title)}">
+      <span class="micro-label">PROJECT ${escapeHtml(id.slice(0, 4).toUpperCase())}</span>
       <div class="video-shell">
-        <a
-          class="video-thumb-link clickable"
-          href="/films/${id}"
-          data-video-detail-link="${id}"
-          aria-label="Open details for ${escapeHtml(film.title)}"
-        >
-          <img
-            src="${film.thumbnailUrl}"
-            alt="${escapeHtml(film.title)}"
-            loading="lazy"
-            decoding="async"
-            data-thumb-fallback-index="0"
-            data-thumb-fallbacks="${escapeHtml((film.thumbnailCandidates || []).join('|'))}"
-          />
-          <span class="video-overlay">
-            <span class="play-button-overlay" role="img" aria-label="Play video">
-              <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-                <circle cx="32" cy="32" r="31" class="play-button-ring" />
-                <path d="M26 21.5L44.5 32L26 42.5V21.5Z" class="play-button-triangle" />
-              </svg>
-            </span>
-          </span>
+        <a class="video-thumb-link clickable" href="/films/${id}" data-video-detail-link="${id}" aria-label="Open details for ${escapeHtml(film.title)}">
+          <img src="${film.thumbnailUrl}" alt="${escapeHtml(film.title)}" loading="lazy" decoding="async" data-thumb-fallback-index="0" data-thumb-fallbacks="${escapeHtml((film.thumbnailCandidates || []).join('|'))}" />
+          <span class="video-overlay"><span class="play-button-overlay" role="img" aria-label="Play video"><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle cx="32" cy="32" r="31" class="play-button-ring" /><path d="M26 21.5L44.5 32L26 42.5V21.5Z" class="play-button-triangle" /></svg></span></span>
         </a>
       </div>
       <div class="film-meta">
-        <h3>
-          <a
-            class="film-title-link clickable"
-            href="/films/${id}"
-            data-video-detail-link="${id}"
-          >${escapeHtml(film.title)}</a>
-        </h3>
-        <p>${escapeHtml(film.role)}</p>
+        <h3><a class="film-title-link clickable" href="/films/${id}" data-video-detail-link="${id}">${escapeHtml(film.title)}</a></h3>
+        <p>${escapeHtml(film.details || film.role || '')}</p>
       </div>
-    </article>
-  `;
+    </article>`;
 }
 
 function initializeThumbnailFallbacks(container) {
@@ -462,18 +396,11 @@ function initializeThumbnailFallbacks(container) {
     'error',
     (event) => {
       const image = event.target;
-      if (!(image instanceof HTMLImageElement)) {
-        return;
-      }
-
-      if (image.dataset.thumbFallbackComplete === 'true') {
-        return;
-      }
+      if (!(image instanceof HTMLImageElement)) return;
+      if (image.dataset.thumbFallbackComplete === 'true') return;
 
       const fallbackList = (image.dataset.thumbFallbacks || '').split('|').filter(Boolean);
-      if (!fallbackList.length) {
-        return;
-      }
+      if (!fallbackList.length) return;
 
       const currentIndex = Number(image.dataset.thumbFallbackIndex || '0');
       const nextIndex = currentIndex + 1;
@@ -491,162 +418,89 @@ function initializeThumbnailFallbacks(container) {
 }
 
 function initializeFilmShowcase() {
-  try {
-    const filmGrid = document.querySelector('.film-grid');
-    if (!filmGrid) {
-      logMissingElement('.film-grid');
-      return;
-    }
-
-    filmRuntimeState.films = normalizeFilmData(films);
-
-    const cardsMarkup = filmRuntimeState.films.map(createVideoCard).filter(Boolean).join('');
-    filmGrid.innerHTML = cardsMarkup;
-
-    if (!cardsMarkup) {
-      console.error('[film-site] Film showcase rendered with 0 playable videos.');
-      return;
-    }
-
-    initializeThumbnailFallbacks(filmGrid);
-
-    filmGrid.addEventListener('click', (event) => {
-      const detailTarget = event.target.closest('[data-video-detail-link]');
-      const clickableCard = event.target.closest('.film-card[data-video-id]');
-      const videoId = detailTarget?.dataset.videoDetailLink || clickableCard?.dataset.videoId;
-
-      if (!videoId) return;
-
-      event.preventDefault();
-      openVideoDetail(videoId, {
-        triggerElement: detailTarget || clickableCard
-      });
-    });
-
-    filmGrid.addEventListener('keydown', (event) => {
-      const card = event.target.closest('.film-card[data-video-id]');
-      if (!card) return;
-
-      if (event.key !== 'Enter' && event.key !== ' ') return;
-
-      event.preventDefault();
-      openVideoDetail(card.dataset.videoId, {
-        triggerElement: card
-      });
-    });
-
-    const directVideoId = parseVideoRoute();
-    if (directVideoId) {
-      openVideoDetail(directVideoId, {
-        shouldNavigate: false,
-        triggerElement: null
-      });
-    }
-
-    window.addEventListener('popstate', () => {
-      const routedVideoId = parseVideoRoute();
-
-      if (routedVideoId) {
-        openVideoDetail(routedVideoId, { shouldNavigate: false });
-        return;
-      }
-
-      closeVideoDetail({ shouldNavigate: false, returnFocus: false });
-    });
-
-    document.addEventListener('keydown', (event) => {
-      if (event.key !== 'Escape') return;
-      if (!appRouteState.activeFilmId) return;
-
-      closeVideoDetail();
-    });
-
-    document.body.addEventListener('click', (event) => {
-      const closeButton = event.target.closest('.video-detail-close');
-      if (!closeButton) return;
-
-      closeVideoDetail();
-    });
-  } catch (error) {
-    console.error('[film-site] initializeFilmShowcase failed safely.', error);
+  const filmGrid = document.querySelector('.film-grid');
+  if (!filmGrid) {
+    logMissingElement('.film-grid');
+    return;
   }
+
+  filmRuntimeState.films = normalizeFilmData(films);
+  filmGrid.innerHTML = filmRuntimeState.films.map(createVideoCard).join('');
+  initializeThumbnailFallbacks(filmGrid);
+
+  filmGrid.addEventListener('click', (event) => {
+    const detailLink = event.target.closest('[data-video-detail-link]');
+    if (!detailLink) return;
+
+    event.preventDefault();
+    openVideoDetail(detailLink.dataset.videoDetailLink, {
+      triggerElement: detailLink,
+      shouldNavigate: true
+    });
+  });
+
+  filmGrid.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    const card = event.target.closest('[data-video-id]');
+    if (!card) return;
+
+    event.preventDefault();
+    openVideoDetail(card.dataset.videoId, {
+      triggerElement: card,
+      shouldNavigate: true
+    });
+  });
+
+  const syncDetailToRoute = () => {
+    const route = getAppRoute();
+    applyRouteLayout(route);
+
+    if (route.filmId) {
+      openVideoDetail(route.filmId, { shouldNavigate: false });
+      return;
+    }
+
+    closeVideoDetail({ shouldNavigate: false, returnFocus: false });
+  };
+
+  window.addEventListener('popstate', syncDetailToRoute);
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && appRouteState.activeFilmId) {
+      closeVideoDetail();
+    }
+  });
+
+  document.body.addEventListener('click', (event) => {
+    const closeButton = event.target.closest('.video-detail-close');
+    if (closeButton) closeVideoDetail();
+  });
+
+  syncDetailToRoute();
 }
 
 function initializeAnimation() {
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (prefersReducedMotion || !window.gsap) return;
+  if (window.ScrollTrigger) gsap.registerPlugin(ScrollTrigger);
 
-  if (prefersReducedMotion) {
-    return;
-  }
-
-  if (!window.gsap) {
-    console.warn('[film-site] GSAP not found. Animation setup skipped.');
-    return;
-  }
-
-  if (window.ScrollTrigger) {
-    gsap.registerPlugin(ScrollTrigger);
-  }
-
-  gsap.from('.site-header', {
-    y: -80,
-    opacity: 0,
-    duration: 0.8,
-    ease: 'power2.out'
-  });
-
-  gsap.from('.reveal', {
-    y: 48,
-    opacity: 0,
-    duration: 1,
-    ease: 'power3.out',
-    delay: 0.3
-  });
-
-  gsap.utils.toArray('.section h2, .section .eyebrow').forEach((el) => {
-    gsap.from(el, {
-      scrollTrigger: window.ScrollTrigger
-        ? {
-            trigger: el,
-            start: 'top 85%'
-          }
-        : undefined,
-      y: 35,
-      opacity: 0,
-      duration: 0.9,
-      ease: 'power2.out'
-    });
-  });
-
+  gsap.from('.site-header', { y: -80, opacity: 0, duration: 0.8, ease: 'power2.out' });
+  gsap.from('.reveal', { y: 48, opacity: 0, duration: 1, ease: 'power3.out', delay: 0.3 });
 }
 
 function initializeSmoothScroll() {
-  if (!window.Lenis) {
-    console.warn('[film-site] Lenis not found. Smooth scrolling skipped.');
-    return;
-  }
+  if (!window.Lenis) return;
 
-  const lenis = new Lenis({
-    duration: 1.1,
-    smoothWheel: true,
-    gestureOrientation: 'vertical'
-  });
-
+  const lenis = new Lenis({ duration: 1.1, smoothWheel: true, gestureOrientation: 'vertical' });
   function raf(time) {
     lenis.raf(time);
     requestAnimationFrame(raf);
   }
-
   requestAnimationFrame(raf);
 }
 
-
 function initializeContactCta() {
   const sayHelloLink = document.querySelector('[data-say-hello]');
-  if (!sayHelloLink) {
-    logMissingElement('[data-say-hello]');
-    return;
-  }
+  if (!sayHelloLink) return;
 
   const feedback = document.querySelector('[data-contact-feedback]');
   const contactEmail = sayHelloLink.dataset.email || '';
@@ -663,11 +517,9 @@ function initializeContactCta() {
 
     try {
       await navigator.clipboard.writeText(contactEmail);
-      if (feedback) {
-        feedback.textContent = `If your mail app did not open, the address was copied: ${contactEmail}`;
-      }
+      if (feedback) feedback.textContent = `If your mail app did not open, the address was copied: ${contactEmail}`;
     } catch (error) {
-      // Clipboard access can fail in restricted browser contexts; mailto link still works.
+      // no-op
     }
   });
 }
@@ -678,17 +530,14 @@ function initializeCursorAndNav() {
   const menuToggle = document.querySelector('.menu-toggle');
   const interactiveSelector = 'button, a, [role="button"], .clickable';
 
-  if (!cursor) {
-    logMissingElement('.cursor');
-  } else {
+  if (cursor) {
     window.addEventListener('mousemove', (event) => {
       cursor.style.left = `${event.clientX}px`;
       cursor.style.top = `${event.clientY}px`;
     });
 
     document.addEventListener('pointerover', (event) => {
-      if (!event.target.closest(interactiveSelector)) return;
-      cursor.classList.add('active');
+      if (event.target.closest(interactiveSelector)) cursor.classList.add('active');
     });
 
     document.addEventListener('pointerout', (event) => {
@@ -698,25 +547,32 @@ function initializeCursorAndNav() {
     });
   }
 
-  if (!nav) {
-    logMissingElement('.site-nav');
-    return;
+  if (menuToggle && nav) {
+    menuToggle.addEventListener('click', () => {
+      const isOpen = nav.classList.toggle('open');
+      menuToggle.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    nav.querySelectorAll('a').forEach((link) => {
+      link.addEventListener('click', () => {
+        nav.classList.remove('open');
+        menuToggle.setAttribute('aria-expanded', 'false');
+      });
+    });
   }
 
-  if (!menuToggle) {
-    logMissingElement('.menu-toggle');
-    return;
-  }
+  document.querySelectorAll('[data-route-link]').forEach((link) => {
+    link.addEventListener('click', (event) => {
+      const href = link.getAttribute('href');
+      if (!href || !href.startsWith('/')) return;
 
-  menuToggle.addEventListener('click', () => {
-    const isOpen = nav.classList.toggle('open');
-    menuToggle.setAttribute('aria-expanded', String(isOpen));
-  });
-
-  nav.querySelectorAll('a').forEach((link) => {
-    link.addEventListener('click', () => {
-      nav.classList.remove('open');
-      menuToggle.setAttribute('aria-expanded', 'false');
+      event.preventDefault();
+      if (window.location.pathname !== href) {
+        history.pushState({}, '', href);
+      }
+      applyRouteLayout(getAppRoute());
+      closeVideoDetail({ shouldNavigate: false, returnFocus: false });
+      window.scrollTo({ top: 0, behavior: 'auto' });
     });
   });
 }
@@ -729,11 +585,8 @@ function initializeDirectorSlateComponent() {
   const takeNode = document.querySelector('[data-take]');
   const rollNode = document.querySelector('[data-roll]');
   const statementNode = document.querySelector('[data-slate-statement]');
-  const filmsSection = document.getElementById('films');
 
-  if (!slate || !takeButton || !scrollButton || !sceneNode || !takeNode || !rollNode || !statementNode || !filmsSection) {
-    return;
-  }
+  if (!slate || !takeButton || !scrollButton || !sceneNode || !takeNode || !rollNode || !statementNode) return;
 
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let scene = 1;
@@ -748,107 +601,43 @@ function initializeDirectorSlateComponent() {
   ];
 
   const formatNumber = (value) => String(value).padStart(2, '0');
-  const metadataNodes = [sceneNode, takeNode, rollNode];
-  const scrollDelayMs = 170;
 
   const scrollToFilms = () => {
-    filmsSection.scrollIntoView({
-      behavior: prefersReducedMotion ? 'auto' : 'smooth',
-      block: 'start'
-    });
-  };
-
-  const animateMetadataSwap = () => {
-    metadataNodes.forEach((node) => node.classList.add('is-updating'));
-
-    window.setTimeout(() => {
-      sceneNode.textContent = formatNumber(scene);
-      takeNode.textContent = formatNumber(take);
-      rollNode.textContent = `A${formatNumber(roll)}`;
-      metadataNodes.forEach((node) => node.classList.remove('is-updating'));
-    }, prefersReducedMotion ? 30 : 120);
-  };
-
-  const animateStatementSwap = () => {
-    statementIndex = (statementIndex + 1) % statements.length;
-
-    if (prefersReducedMotion) {
-      statementNode.textContent = statements[statementIndex];
-      return;
-    }
-
-    statementNode.classList.add('is-fading');
-
-    window.setTimeout(() => {
-      statementNode.textContent = statements[statementIndex];
-      statementNode.classList.remove('is-fading');
-    }, 130);
-  };
-
-  const startClapAnimation = () => {
-    slate.classList.remove('is-clapping');
-
-    if (prefersReducedMotion) {
-      statementNode.classList.add('is-fading');
-      window.setTimeout(() => statementNode.classList.remove('is-fading'), 120);
-      return;
-    }
-
-    // Force restart so rapid clicks still produce a clean clap sequence.
-    void slate.offsetWidth;
-    slate.classList.add('is-clapping');
-    window.setTimeout(() => {
-      slate.classList.remove('is-clapping');
-    }, 340);
-  };
-
-  const triggerScrollAfterClap = () => {
-    if (prefersReducedMotion) {
-      scrollToFilms();
-      return;
-    }
-
-    window.setTimeout(scrollToFilms, scrollDelayMs);
+    history.pushState({}, '', '/films');
+    applyRouteLayout(getAppRoute());
+    window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
   };
 
   const handleTakeInteraction = () => {
     take += 1;
-
     if (take > 5) {
       take = 1;
       scene = (scene % 12) + 1;
       roll += 1;
     }
 
-    animateMetadataSwap();
-    animateStatementSwap();
-    startClapAnimation();
-    triggerScrollAfterClap();
+    sceneNode.textContent = formatNumber(scene);
+    takeNode.textContent = formatNumber(take);
+    rollNode.textContent = `A${formatNumber(roll)}`;
+
+    statementIndex = (statementIndex + 1) % statements.length;
+    statementNode.textContent = statements[statementIndex];
+
+    slate.classList.remove('is-clapping');
+    void slate.offsetWidth;
+    slate.classList.add('is-clapping');
+
+    window.setTimeout(scrollToFilms, prefersReducedMotion ? 0 : 170);
   };
 
   takeButton.addEventListener('click', handleTakeInteraction);
-
-  const handleSlateSurfaceInteraction = () => {
-    startClapAnimation();
-    triggerScrollAfterClap();
-  };
-
-  slate.addEventListener('click', (event) => {
-    if (event.target.closest('button, a, input, textarea, select')) {
-      return;
-    }
-
-    handleSlateSurfaceInteraction();
-  });
-  scrollButton.addEventListener('click', () => {
-    handleSlateSurfaceInteraction();
-  });
+  scrollButton.addEventListener('click', scrollToFilms);
 }
 
-// Waiting for DOMContentLoaded ensures element queries are reliable in production where scripts can execute earlier than expected.
 document.addEventListener('DOMContentLoaded', () => {
+  applyRouteLayout(getAppRoute());
   initializeGlobalCursorLock(window.CURSOR_LOCK_CONFIG);
-  void initializeFilmShowcase();
+  initializeFilmShowcase();
   initializeDirectorSlateComponent();
   initializeAnimation();
   initializeSmoothScroll();
