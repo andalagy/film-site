@@ -389,6 +389,32 @@ function initializeSmoothScroll() {
   requestAnimationFrame(raf);
 }
 
+
+function initializeContactCta() {
+  const sayHelloLink = document.querySelector('[data-say-hello]');
+  if (!sayHelloLink) {
+    logMissingElement('[data-say-hello]');
+    return;
+  }
+
+  const feedback = document.querySelector('[data-contact-feedback]');
+  const contactEmail = sayHelloLink.dataset.email || '';
+
+  sayHelloLink.addEventListener('click', async () => {
+    if (!navigator.clipboard || !contactEmail) return;
+
+    try {
+      await navigator.clipboard.writeText(contactEmail);
+      if (feedback) {
+        feedback.hidden = false;
+        feedback.textContent = `If your mail app did not open, the address was copied: ${contactEmail}`;
+      }
+    } catch (error) {
+      // Clipboard access can fail in restricted browser contexts; mailto link still works.
+    }
+  });
+}
+
 function initializeCursorAndNav() {
   const cursor = document.querySelector('.cursor');
   const nav = document.querySelector('.site-nav');
@@ -443,5 +469,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeFilmShowcase();
   initializeAnimation();
   initializeSmoothScroll();
+  initializeContactCta();
   initializeCursorAndNav();
 });

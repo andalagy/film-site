@@ -155,6 +155,14 @@ h2 {
   justify-content: center;
 }
 
+.contact-feedback {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.92rem;
+}
+
 .btn {
   padding: 0.72rem 1.2rem;
   border: 1px solid rgba(255, 255, 255, 0.3);
