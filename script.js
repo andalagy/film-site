@@ -39,6 +39,11 @@ const filmRuntimeState = {
   youtubeApiScriptPromise: null
 };
 
+const cursorRuntimeState = {
+  initialized: false,
+  controller: null
+};
+
 function logMissingElement(name) {
   console.error(`[film-site] Required element missing: ${name}. Feature initialization was skipped safely.`);
 }
@@ -873,21 +878,52 @@ function initializeCursorAndNav() {
   if (!cursor) {
     logMissingElement('.cursor');
   } else {
-    window.addEventListener('mousemove', (event) => {
-      cursor.style.left = `${event.clientX}px`;
-      cursor.style.top = `${event.clientY}px`;
-    });
+    const supportsFinePointer = window.matchMedia?.('(pointer:fine)').matches ?? true;
 
-    document.addEventListener('pointerover', (event) => {
-      if (!event.target.closest(interactiveSelector)) return;
-      cursor.classList.add('active');
-    });
+    if (!supportsFinePointer) {
+      cursor.hidden = true;
+      cursor.setAttribute('aria-hidden', 'true');
+    } else if (!cursorRuntimeState.initialized) {
+      cursorRuntimeState.initialized = true;
+      cursorRuntimeState.controller = new AbortController();
 
-    document.addEventListener('pointerout', (event) => {
-      if (!event.target.closest(interactiveSelector)) return;
-      if (event.relatedTarget?.closest(interactiveSelector)) return;
-      cursor.classList.remove('active');
-    });
+      window.addEventListener(
+        'mousemove',
+        (event) => {
+          cursor.style.left = `${event.clientX}px`;
+          cursor.style.top = `${event.clientY}px`;
+          cursor.hidden = false;
+        },
+        { signal: cursorRuntimeState.controller.signal }
+      );
+
+      document.addEventListener(
+        'pointerover',
+        (event) => {
+          if (!event.target.closest(interactiveSelector)) return;
+          cursor.classList.add('active');
+        },
+        { signal: cursorRuntimeState.controller.signal }
+      );
+
+      document.addEventListener(
+        'pointerout',
+        (event) => {
+          if (!event.target.closest(interactiveSelector)) return;
+          if (event.relatedTarget?.closest(interactiveSelector)) return;
+          cursor.classList.remove('active');
+        },
+        { signal: cursorRuntimeState.controller.signal }
+      );
+
+      window.addEventListener(
+        'touchstart',
+        () => {
+          cursor.hidden = true;
+        },
+        { passive: true, signal: cursorRuntimeState.controller.signal }
+      );
+    }
   }
 
   if (!nav) {
