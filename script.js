@@ -1,6 +1,8 @@
 const APP_BASE_PATH = '/andalagy';
 const FILMS = Array.isArray(window.FILMS_DATA) ? window.FILMS_DATA : [];
 const WRITINGS = Array.isArray(window.WRITINGS_DATA) ? window.WRITINGS_DATA : [];
+const YOUTUBE_ID_REGEX = /^[A-Za-z0-9_-]{11}$/;
+const EMBED_LOAD_TIMEOUT_MS = 3200;
 
 const app = document.querySelector('#app');
 const cursor = document.querySelector('.cursor');
@@ -37,6 +39,27 @@ function routeFromLocation() {
 
 function lower(text) {
   return String(text || '').toLowerCase();
+}
+
+function isDev() {
+  return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+}
+
+function logDev(message, payload = {}) {
+  if (!isDev()) return;
+  console.info(`[film-embed] ${message}`, payload);
+}
+
+function isValidVideoId(id) {
+  return typeof id === 'string' && YOUTUBE_ID_REGEX.test(id);
+}
+
+function buildEmbedSrc(id) {
+  return `https://www.youtube-nocookie.com/embed/${id}?rel=0&modestbranding=1`;
+}
+
+function buildWatchUrl(id) {
+  return `https://www.youtube.com/watch?v=${id}`;
 }
 
 function thumbCandidates(id) {
@@ -99,19 +122,43 @@ function filmsView() {
 }
 
 function filmDetailView(id) {
+  if (!id) return `<section class="page-section"><h1>film not found</h1></section>`;
   const film = FILMS.find((item) => item.id === id);
   if (!film) return `<section class="page-section"><h1>film not found</h1></section>`;
+  const validId = isValidVideoId(film.id);
+  const embedSrc = validId ? buildEmbedSrc(film.id) : '';
+
+  logDev('render detail', { id: film.id, embedSrc, validId });
+
   return `<section class="page-section detail">
     <a class="back-link" href="${toUrl('/films')}" data-link="/films">back</a>
-    <div class="player-wrap">
-      <iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(
-        film.id
-      )}" title="${lower(film.title)}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+    <div class="player-wrap" data-player-wrap data-film-id="${film.id}" data-state="${validId ? 'embed' : 'fallback'}">
+      <div class="player-ratio">
+        ${
+          validId
+            ? `<iframe key="${film.id}" data-film-iframe data-film-id="${film.id}" src="${embedSrc}" title="${lower(
+                film.title
+              )}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`
+            : filmFallbackView(film, 'invalid id')
+        }
+      </div>
     </div>
     <h1>${lower(film.title)}</h1>
     <p>${lower(film.statement)}</p>
     <p class="meta">${lower(film.year)} · ${lower(film.runtime)} · ${lower(film.role)}</p>
   </section>`;
+}
+
+function filmFallbackView(film, reason) {
+  const thumb = thumbCandidates(film.id)[0];
+  const safeReason = lower(reason || 'embed failed');
+  return `<div class="film-fallback" data-film-fallback data-reason="${safeReason}">
+    <img src="${thumb}" alt="${lower(film.title)} thumbnail" loading="lazy" />
+    <div class="film-fallback-copy">
+      <p>this video can’t be embedded. watch on youtube.</p>
+      <a class="quiet-btn" target="_blank" rel="noopener noreferrer" href="${buildWatchUrl(film.id)}">watch on youtube</a>
+    </div>
+  </div>`;
 }
 
 function writingsView() {
@@ -225,6 +272,62 @@ function bindDynamicInteractions() {
       });
     });
   }
+
+  setupFilmEmbedFallback();
+}
+
+function setupFilmEmbedFallback() {
+  const wrap = document.querySelector('[data-player-wrap]');
+  const iframe = document.querySelector('[data-film-iframe]');
+  if (!wrap) return;
+
+  const id = wrap.dataset.filmId || '';
+  const film = FILMS.find((item) => item.id === id);
+  if (!film) return;
+
+  if (!isValidVideoId(id)) {
+    wrap.dataset.state = 'fallback';
+    logDev('fallback triggered', { id, reason: 'invalid id' });
+    return;
+  }
+
+  if (!iframe) {
+    wrap.dataset.state = 'fallback';
+    replaceEmbedWithFallback(wrap, film, 'missing iframe');
+    logDev('fallback triggered', { id, reason: 'missing iframe' });
+    return;
+  }
+
+  let settled = false;
+  const timeoutId = window.setTimeout(() => {
+    if (settled) return;
+    settled = true;
+    replaceEmbedWithFallback(wrap, film, 'timeout');
+    logDev('fallback triggered', { id, reason: 'timeout' });
+  }, EMBED_LOAD_TIMEOUT_MS);
+
+  iframe.addEventListener('load', () => {
+    if (settled) return;
+    settled = true;
+    wrap.dataset.state = 'embed';
+    window.clearTimeout(timeoutId);
+    logDev('embed loaded', { id, src: iframe.src });
+  });
+
+  iframe.addEventListener('error', () => {
+    if (settled) return;
+    settled = true;
+    window.clearTimeout(timeoutId);
+    replaceEmbedWithFallback(wrap, film, 'iframe error');
+    logDev('fallback triggered', { id, reason: 'iframe error' });
+  });
+}
+
+function replaceEmbedWithFallback(wrap, film, reason) {
+  wrap.dataset.state = 'fallback';
+  const ratio = wrap.querySelector('.player-ratio');
+  if (!ratio) return;
+  ratio.innerHTML = filmFallbackView(film, reason);
 }
 
 function setupNavigation() {

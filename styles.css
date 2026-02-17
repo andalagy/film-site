@@ -215,12 +215,47 @@ main {
   width: min(860px, 100%);
   margin: 1rem 0 1.4rem;
   border: 1px solid var(--line);
+  background: var(--bg-soft);
 }
 
-.detail iframe {
+.player-ratio {
+  position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
+}
+
+.detail iframe,
+.film-fallback {
+  width: 100%;
+  height: 100%;
   border: 0;
+}
+
+.film-fallback {
+  display: grid;
+  grid-template-rows: 1fr auto;
+}
+
+.film-fallback img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.78);
+}
+
+.film-fallback-copy {
+  padding: 0.9rem;
+  border-top: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.film-fallback-copy p {
+  margin: 0;
+}
+
+.film-fallback-copy .quiet-btn {
+  display: inline-block;
+  margin-top: 0.7rem;
 }
 
 .writing-list {
