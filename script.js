@@ -1,6 +1,7 @@
 const APP_BASE_PATH = '/andalagy';
 const FILMS = Array.isArray(window.FILMS_DATA) ? window.FILMS_DATA : [];
 const WRITINGS = Array.isArray(window.WRITINGS_DATA) ? window.WRITINGS_DATA : [];
+const LIST_CTA_LABEL = 'show more';
 const YOUTUBE_ID_REGEX = /^[A-Za-z0-9_-]{11}$/;
 const EMBED_LOAD_TIMEOUT_MS = 3200;
 
@@ -10,7 +11,7 @@ const ambientLeak = document.querySelector('.ambient-leak');
 const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 let homeExpanded = false;
-let activeWritingSlug = '';
+let homeWritingsExpanded = false;
 let ambientRaf = 0;
 const ambientMotion = {
   tx: window.innerWidth * 0.5,
@@ -107,6 +108,24 @@ function filmCard(film) {
     </article>`;
 }
 
+function writingDetailPath(slug) {
+  return `/writings/${encodeURIComponent(slug)}`;
+}
+
+function writingCard(item) {
+  const writingPath = writingDetailPath(item.slug);
+  const detailBits = [item.year, item.pages].filter(Boolean).map((bit) => lower(bit));
+  return `<article class="writing-card">
+    <a href="${toUrl(writingPath)}" data-link="${writingPath}" class="writing-link">
+      <div class="writing-overlay">
+        <h3>${lower(item.title)}</h3>
+        <p>${lower(item.excerpt)}</p>
+        ${detailBits.length ? `<small>${detailBits.join(' · ')}</small>` : ''}
+      </div>
+    </a>
+  </article>`;
+}
+
 function aboutBlock() {
   return `<section id="about" class="about">
     <h2>about</h2>
@@ -124,7 +143,7 @@ function aboutBlock() {
 
 function homeView() {
   const shown = homeExpanded ? FILMS : FILMS.slice(0, 4);
-  const writingPreview = WRITINGS.slice(0, 3);
+  const shownWritings = homeWritingsExpanded ? WRITINGS : WRITINGS.slice(0, 4);
   return `<section class="slate-wrap" id="slate">
       <article class="slate" data-slate>
         <span class="slate-glow" aria-hidden="true"></span>
@@ -138,23 +157,16 @@ function homeView() {
         <h2>work</h2>
       </div>
       <div class="film-grid">${shown.map(filmCard).join('')}</div>
-      <button class="quiet-btn" data-toggle-home>${homeExpanded ? 'show less' : 'show more'}</button>
+      <button class="quiet-btn" data-toggle-home>${homeExpanded ? 'show less' : LIST_CTA_LABEL}</button>
     </section>
     <section class="home-writings">
       <div class="heading-row">
         <h2>writings</h2>
       </div>
-      <div class="writing-preview-list">
-        ${writingPreview
-          .map(
-            (item) => `<a class="writing-preview-item" href="${toUrl(`/writings?work=${encodeURIComponent(item.slug)}`)}" data-link="/writings?work=${encodeURIComponent(item.slug)}">
-              <h3>${lower(item.title)}</h3>
-              <p>${lower(item.excerpt)}</p>
-            </a>`
-          )
-          .join('')}
+      <div class="writing-grid">
+        ${shownWritings.map(writingCard).join('')}
       </div>
-      <a class="view-all-link" href="${toUrl('/writings')}" data-link="/writings">view all writings</a>
+      <button class="quiet-btn" data-toggle-home-writings>${homeWritingsExpanded ? 'show less' : LIST_CTA_LABEL}</button>
     </section>
     ${aboutBlock()}`;
 }
@@ -203,17 +215,6 @@ function filmFallbackView(film, reason) {
   </div>`;
 }
 
-function getRequestedWritingSlug(routeSlug = '') {
-  const fromRoute = routeSlug && WRITINGS.find((entry) => entry.slug === routeSlug) ? routeSlug : '';
-  const query = new URLSearchParams(window.location.search);
-  const fromQuery = query.get('work') || '';
-  const fromHash = decodeURIComponent(window.location.hash.replace('#', ''));
-  if (WRITINGS.find((entry) => entry.slug === fromRoute)) return fromRoute;
-  if (WRITINGS.find((entry) => entry.slug === fromQuery)) return fromQuery;
-  if (WRITINGS.find((entry) => entry.slug === fromHash)) return fromHash;
-  return WRITINGS[0]?.slug || '';
-}
-
 function writingContentHtml(item) {
   return item.content
     .split('\n\n')
@@ -221,27 +222,24 @@ function writingContentHtml(item) {
     .join('');
 }
 
-function writingsView(routeSlug = '') {
-  const selectedSlug = getRequestedWritingSlug(routeSlug);
-  const selected = WRITINGS.find((entry) => entry.slug === selectedSlug) || WRITINGS[0];
-  activeWritingSlug = selected?.slug || '';
-
+function writingsView() {
   return `<section class="page-section writings" data-ambient-shift>
     <h1>writings</h1>
-    <div class="writings-layout">
-      <div class="writing-list" data-writing-list>
-      ${WRITINGS.map(
-        (item, index) => `<button class="writing-item ${item.slug === activeWritingSlug ? 'is-selected' : ''}" data-writing-select="${item.slug}" data-excerpt="${lower(item.excerpt)}" data-mood="${['amber', 'lilac', 'blue'][index % 3]}">
-          <h2>${lower(item.title)}</h2>
-          <p>${lower(item.excerpt)}</p>
-        </button>`
-      ).join('')}
-      </div>
-      <article class="writing-content" id="writing-content" data-writing-content>
-        <h2 data-writing-title>${lower(selected?.title || '')}</h2>
-        <div data-writing-body>${selected ? writingContentHtml(selected) : ''}</div>
-      </article>
+    <div class="writing-grid">
+      ${WRITINGS.map(writingCard).join('')}
     </div>
+  </section>`;
+}
+
+function writingDetailView(slug) {
+  const item = WRITINGS.find((entry) => entry.slug === slug);
+  if (!item) return `<section class="page-section"><h1>writing not found</h1></section>`;
+  return `<section class="page-section writing-detail">
+    <a class="back-link" href="${toUrl('/writings')}" data-link="/writings">back</a>
+    <h1>${lower(item.title)}</h1>
+    <article>
+      ${writingContentHtml(item)}
+    </article>
   </section>`;
 }
 
@@ -255,7 +253,7 @@ function render() {
   if (route.page === 'films') html = filmsView();
   if (route.page === 'film') html = filmDetailView(route.id);
   if (route.page === 'writings') html = writingsView();
-  if (route.page === 'writing') html = writingsView(route.slug);
+  if (route.page === 'writing') html = writingDetailView(route.slug);
 
   app.innerHTML = html;
   document.body.classList.toggle('home-page', route.page === 'home');
@@ -309,10 +307,17 @@ function bindDynamicInteractions() {
     filmsSection?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
   });
 
+  const writingToggle = document.querySelector('[data-toggle-home-writings]');
+  writingToggle?.addEventListener('click', () => {
+    homeWritingsExpanded = !homeWritingsExpanded;
+    render();
+    const writingsSection = document.querySelector('.home-writings');
+    writingsSection?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+  });
+
   const quote = document.querySelector('[data-pull-quote]');
   if (quote) quote.remove();
 
-  setupWritingSelection();
   setupSlateLightSeed();
 
   document.querySelectorAll('.film-link').forEach((link) => {
@@ -379,35 +384,6 @@ function initYouTubeThumbnailFallbacks() {
     };
 
     tryThumb(Number(img.dataset.thumbIndex || 0));
-  });
-}
-
-function setupWritingSelection() {
-  const writingBody = document.querySelector('[data-writing-body]');
-  const writingTitle = document.querySelector('[data-writing-title]');
-  if (!writingBody || !writingTitle) return;
-
-  const selectWriting = (slug, shouldScroll = false) => {
-    const item = WRITINGS.find((entry) => entry.slug === slug);
-    if (!item) return;
-    activeWritingSlug = item.slug;
-    writingTitle.textContent = lower(item.title);
-    writingBody.innerHTML = writingContentHtml(item);
-    document.querySelectorAll('[data-writing-select]').forEach((button) => {
-      button.classList.toggle('is-selected', button.getAttribute('data-writing-select') === slug);
-    });
-    updateAmbientMood(document.querySelector(`[data-writing-select="${slug}"]`)?.dataset.mood || '');
-    const nextPath = `${toUrl('/writings')}?work=${encodeURIComponent(slug)}`;
-    history.replaceState({}, '', nextPath);
-    if (shouldScroll && window.matchMedia('(max-width: 900px)').matches) {
-      document.querySelector('#writing-content')?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
-    }
-  };
-
-  document.querySelectorAll('[data-writing-select]').forEach((button) => {
-    button.addEventListener('click', () => selectWriting(button.getAttribute('data-writing-select') || '', true));
-    button.addEventListener('mouseenter', () => updateAmbientMood(button.dataset.mood || 'amber'));
-    button.addEventListener('mouseleave', () => updateAmbientMood(''));
   });
 }
 

@@ -215,6 +215,12 @@ body.home-page main {
 
 .film-grid { display: grid; gap: 1.2rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
 
+.writing-grid {
+  display: grid;
+  gap: 1.2rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .film-card { transform: translate(var(--card-shift-x, 0px), var(--card-shift-y, 0px)); }
 .film-card h3 { position: relative; font-weight: 400; margin-top: 0.7rem; letter-spacing: 0.018em; }
 .film-card h3::after {
@@ -240,6 +246,56 @@ body.home-page main {
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.11);
 }
+
+.writing-link {
+  position: relative;
+  display: block;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  min-height: 190px;
+  background:
+    linear-gradient(180deg, rgba(18, 19, 23, 0.72), rgba(10, 10, 13, 0.94)),
+    radial-gradient(circle at 15% 20%, rgba(255, 211, 168, 0.13), transparent 50%),
+    radial-gradient(circle at 85% 80%, rgba(170, 181, 255, 0.14), transparent 55%);
+  transition: transform 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease;
+}
+
+.writing-link:hover,
+.writing-link:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(255, 224, 196, 0.38);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+.writing-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  padding: 0.95rem;
+  background: linear-gradient(180deg, rgba(12, 12, 14, 0.08), rgba(10, 10, 12, 0.82));
+}
+
+.writing-overlay h3 {
+  margin: 0;
+  font-weight: 400;
+  letter-spacing: 0.015em;
+}
+
+.writing-overlay p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.writing-overlay small { color: var(--muted); opacity: 0.78; }
 
 .film-link::before {
   content: '';
@@ -331,47 +387,13 @@ body.home-page main {
 .film-fallback-copy p { margin: 0; }
 .film-fallback-copy .quiet-btn { display: inline-block; margin-top: 0.7rem; }
 
-.writing-list { display: grid; gap: 0.9rem; }
-.writings-layout { display: grid; gap: 1.1rem; grid-template-columns: minmax(260px, 360px) minmax(0, 1fr); }
-.writing-item {
-  width: 100%;
-  text-align: left;
-  color: var(--text);
-  border: 1px solid var(--line);
-  padding: 1rem;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.01);
-  transition: background 0.3s ease, transform 0.35s ease, border-color 0.3s ease;
-}
-.writing-item h2 { margin: 0 0 0.45rem; letter-spacing: 0.016em; }
-.writing-item p { margin: 0; color: var(--muted); line-height: 1.5; }
-.writing-item:hover,
-.writing-item:focus-visible,
-.writing-item.is-selected { transform: translateY(-2px); background: rgba(255, 255, 255, 0.04); border-color: rgba(255, 223, 187, 0.4); }
-
-.writing-content {
+.writing-detail article {
+  max-width: 68ch;
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: clamp(1rem, 2.3vw, 1.6rem);
   background: linear-gradient(180deg, rgba(20, 22, 27, 0.94), rgba(14, 15, 18, 0.95));
 }
-
-.writing-content h2 { margin-top: 0; letter-spacing: 0.015em; }
-.writing-content p { margin-top: 0; }
-
-.writing-preview-list { display: grid; gap: 0.85rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-.writing-preview-item {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 0.9rem;
-  background: rgba(255, 255, 255, 0.01);
-  transition: transform 0.26s ease, background 0.26s ease;
-}
-.writing-preview-item:hover,
-.writing-preview-item:focus-visible { transform: translateY(-2px); background: rgba(255, 255, 255, 0.03); }
-.writing-preview-item h3 { margin: 0 0 0.4rem; font-weight: 500; }
-.writing-preview-item p { margin: 0; color: var(--muted); line-height: 1.55; }
-.view-all-link { display: inline-block; margin-top: 0.9rem; opacity: 0.78; }
 
 .cursor {
   position: fixed;
@@ -458,5 +480,9 @@ body.slate-flash::after {
 
 @media (max-width: 900px) {
   body.home-page main { padding-top: 2.8rem; }
-  .writings-layout { grid-template-columns: 1fr; }
+  .writing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  .writing-grid { grid-template-columns: 1fr; }
 }
