@@ -257,7 +257,7 @@ function homeView() {
       <article class="slate" data-slate>
         <span class="slate-glow" aria-hidden="true"></span>
         <h1 data-glitch="andrew yan">andrew yan</h1>
-        <p>minimal, atmospheric films about memory, tension, and what remains unsaid.</p>
+        <p>the world forgetting, the world forgot.</p>
         ${slateMetaMarkup()}
       </article>
     </section>
