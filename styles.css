@@ -6,18 +6,21 @@
   --line: rgba(255, 255, 255, 0.14);
   --float-x: 0px;
   --float-y: 0px;
-  --leak-x: 50vw;
-  --leak-y: 40vh;
   --motion-intensity: 1;
-  --fog-blur: 46px;
-  --leak-opacity: 0.28;
   --ghost-offset: 2px;
   --parallax-x: 0px;
   --parallax-y: 0px;
   --gradient-jitter-a: 0%;
   --gradient-jitter-b: 0%;
   --leak-spin: 0deg;
+  --leak-a-x: 52%;
+  --leak-a-y: 33%;
+  --leak-b-x: 18%;
+  --leak-b-y: 68%;
+  --leak-a-delay: -8s;
+  --leak-b-delay: -16s;
 }
+
 
 * {
   box-sizing: border-box;
@@ -38,57 +41,108 @@ body {
   overflow-x: hidden;
 }
 
-.ambient-base,
-.ambient-gradient,
-.ambient-leak,
-.ambient-fog,
-.grain {
+
+.dream-stack,
+.dream-stack > div {
   position: fixed;
   inset: 0;
   pointer-events: none;
 }
 
-.ambient-base {
-  z-index: -5;
-  background: #0f1014;
+.dream-stack { z-index: -10; }
+
+.ambient-base { background: #0f1014; }
+
+.dream-haze,
+.dream-leak {
+  will-change: transform;
+  mix-blend-mode: screen;
 }
 
-.ambient-gradient {
-  z-index: -4;
-  opacity: 0.46;
-  background: radial-gradient(circle at calc(20% + var(--gradient-jitter-a)) calc(18% - var(--gradient-jitter-b)), rgba(82, 91, 118, 0.26), transparent 42%),
-    radial-gradient(circle at calc(73% - var(--gradient-jitter-b)) calc(82% + var(--gradient-jitter-a)), rgba(95, 75, 108, 0.22), transparent 50%),
-    radial-gradient(circle at 50% 50%, rgba(118, 89, 150, 0.08), transparent 58%);
+.dream-haze {
+  opacity: 0.22;
+  filter: blur(42px);
+}
+
+.dream-haze.layer-a {
+  background: radial-gradient(circle at 18% 24%, rgba(115, 126, 166, 0.24), transparent 42%),
+    radial-gradient(circle at 82% 70%, rgba(175, 129, 215, 0.16), transparent 55%);
+  transform: translate3d(calc(var(--parallax-x) * 0.22), calc(var(--parallax-y) * 0.22), 0);
+  animation: hazeFloatA 44s ease-in-out infinite alternate;
+}
+
+.dream-haze.layer-b {
+  opacity: 0.18;
+  background: radial-gradient(circle at 70% 18%, rgba(255, 218, 180, 0.2), transparent 44%),
+    radial-gradient(circle at 16% 84%, rgba(172, 199, 255, 0.12), transparent 52%);
   transform: translate3d(calc(var(--parallax-x) * 0.35), calc(var(--parallax-y) * 0.35), 0);
-  animation: tideShift 28s ease-in-out infinite alternate;
+  animation: hazeFloatB 58s ease-in-out infinite alternate;
 }
 
-.ambient-leak {
-  z-index: -3;
-  opacity: var(--leak-opacity);
-  background: radial-gradient(circle at var(--leak-x) var(--leak-y), rgba(255, 196, 143, 0.3), transparent 26%),
-    radial-gradient(circle at calc(var(--leak-x) - 20vw + var(--gradient-jitter-b)) calc(var(--leak-y) + 8vh), rgba(172, 124, 222, 0.24), transparent 36%),
-    linear-gradient(120deg, rgba(160, 139, 206, 0.1), rgba(255, 184, 145, 0.13), transparent 67%);
-  filter: blur(calc(26px + (var(--motion-intensity) * 6px)));
+.dream-haze.layer-c {
+  opacity: 0.12;
+  background: radial-gradient(circle at 52% 44%, rgba(196, 167, 224, 0.16), transparent 62%);
+  transform: translate3d(calc(var(--parallax-x) * 0.5), calc(var(--parallax-y) * 0.5), 0);
+  animation: hazeFloatC 67s ease-in-out infinite alternate;
+}
+
+.dream-leak {
+  opacity: 0.2;
+  filter: blur(28px);
+}
+
+.dream-leak.leak-a {
+  background: radial-gradient(40% 38% at var(--leak-a-x) var(--leak-a-y), rgba(255, 198, 141, 0.26), transparent 76%),
+    linear-gradient(130deg, transparent 20%, rgba(255, 191, 157, 0.11) 48%, transparent 76%);
   transform: translate3d(calc(var(--parallax-x) * 0.8), calc(var(--parallax-y) * 0.8), 0) rotate(var(--leak-spin));
-  transition: opacity 0.4s ease;
+  animation: lightLeakA 51s ease-in-out infinite;
+  animation-delay: var(--leak-a-delay);
 }
 
-.ambient-fog {
-  z-index: -2;
-  opacity: 0.33;
-  background: radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.14), transparent 38%),
-    radial-gradient(circle at 84% 64%, rgba(197, 209, 255, 0.12), transparent 44%);
-  filter: blur(var(--fog-blur));
-  mask-image: linear-gradient(180deg, transparent 5%, black 30%, black 75%, transparent 100%);
-  transform: translate3d(calc(var(--parallax-x) * 0.6), calc(var(--parallax-y) * 0.6), 0);
-  animation: fogDrift 44s ease-in-out infinite alternate;
+.dream-leak.leak-b {
+  opacity: 0.16;
+  background: radial-gradient(34% 36% at var(--leak-b-x) var(--leak-b-y), rgba(174, 138, 232, 0.24), transparent 72%),
+    linear-gradient(200deg, transparent 18%, rgba(163, 197, 255, 0.1) 46%, transparent 74%);
+  transform: translate3d(calc(var(--parallax-x) * 0.95), calc(var(--parallax-y) * 0.95), 0);
+  animation: lightLeakB 64s ease-in-out infinite;
+  animation-delay: var(--leak-b-delay);
 }
 
-.grain {
-  z-index: -1;
-  opacity: 0.07;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='.3'/%3E%3C/svg%3E");
+.dream-vignette {
+  background: radial-gradient(circle at center, transparent 52%, rgba(7, 8, 12, 0.42) 100%);
+}
+
+.dream-bloom {
+  opacity: 0.22;
+  background: radial-gradient(circle at 50% 16%, rgba(247, 240, 225, 0.1), transparent 58%);
+  filter: blur(20px);
+}
+
+.dream-noise {
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='130' viewBox='0 0 130 130'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='130' height='130' filter='url(%23n)' opacity='.32'/%3E%3C/svg%3E");
+  animation: grainShift 20s steps(6) infinite;
+}
+
+.whisper-line {
+  position: fixed;
+  right: clamp(0.8rem, 2.2vw, 1.8rem);
+  bottom: clamp(1.6rem, 5vh, 3.2rem);
+  z-index: 2;
+  max-width: 24ch;
+  font-size: 0.67rem;
+  letter-spacing: 0.09em;
+  color: rgba(232, 230, 224, 0.3);
+  opacity: 0;
+  transform: translateY(7px);
+  transition: opacity 0.9s ease, transform 0.9s ease;
+  pointer-events: none;
+  text-transform: lowercase;
+}
+
+.whisper-line.is-visible {
+  opacity: 0.42;
+  transform: translateY(0);
 }
 
 .site-header {
@@ -139,6 +193,8 @@ body.home-page main {
 
 .slate {
   position: relative;
+  animation: breathe 15s ease-in-out infinite;
+  transform-origin: 50% 45%;
   overflow: hidden;
   width: min(760px, 100%);
   transform: none;
@@ -311,6 +367,20 @@ body.home-page main {
   pointer-events: none;
 }
 
+.home-films::after,
+.home-writings::after,
+.about::after,
+.page-section::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 -1.2rem;
+  height: 88px;
+  background: linear-gradient(0deg, rgba(11, 12, 16, 0), rgba(11, 12, 16, 0.5), rgba(11, 12, 16, 0));
+  filter: blur(16px);
+  opacity: calc(0.45 + (var(--section-dissolve, 0) * 0.28));
+  pointer-events: none;
+}
+
 .film-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.4rem; align-items: start; }
 
 .writing-grid {
@@ -330,14 +400,14 @@ body.home-page main {
   transform: translate(var(--ghost-offset), calc(var(--ghost-offset) * -0.55));
   filter: blur(2px);
   color: rgba(227, 217, 255, 0.55);
-  transition: opacity 0.2s ease;
+  transition: opacity 0.34s ease, filter 0.34s ease;
   pointer-events: none;
 }
 
 .film-card:hover .ghost-title::after,
 .film-card:focus-within .ghost-title::after,
-.writing-link:hover .ghost-title::after,
-.writing-link:focus-visible .ghost-title::after { opacity: 0.65; }
+.writing-card:hover .ghost-title::after,
+.writing-card:focus-within .ghost-title::after { opacity: 0.65; }
 
 .film-link {
   position: relative;
@@ -349,8 +419,11 @@ body.home-page main {
 }
 
 .writing-link {
+  position: relative;
   display: block;
   text-decoration: none;
+  overflow: hidden;
+  border-radius: 12px;
 }
 
 .writing-link:hover,
@@ -445,7 +518,16 @@ body.home-page main {
   margin: 0.7rem 0 0;
 }
 
+
+.film-title-link {
+  position: relative;
+  display: inline-block;
+  color: inherit;
+}
+
 .writing-title-link {
+  position: relative;
+  display: inline-block;
   color: inherit;
   text-decoration: none;
 }
@@ -531,6 +613,41 @@ body.home-page main {
 .film-link:focus-visible .film-overlay span,
 .film-link:focus-visible .film-overlay small { opacity: 1; transform: translateY(0); filter: blur(0); }
 
+
+.memory-smear {
+  position: absolute;
+  inset: -8% -12%;
+  z-index: 1;
+  background: linear-gradient(120deg, transparent 34%, rgba(255, 230, 204, 0.13) 50%, transparent 66%);
+  filter: blur(16px);
+  opacity: 0;
+  transform: translateX(-8%);
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+
+.film-link:hover .memory-smear,
+.film-link:focus-visible .memory-smear,
+.writing-link:hover .memory-smear,
+.writing-link:focus-visible .memory-smear {
+  opacity: 0.44;
+  animation: memoryDrift 2.8s ease forwards;
+}
+
+.echo-ring {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  left: var(--echo-x);
+  top: var(--echo-y);
+  transform: translate(-50%, -50%) scale(0.3);
+  border-radius: 50%;
+  border: 1px solid rgba(252, 240, 229, 0.45);
+  box-shadow: 0 0 26px rgba(252, 234, 206, 0.2);
+  pointer-events: none;
+  animation: echoOut 0.5s ease forwards;
+}
+
 .about p,
 .page-section p,
 .writing-detail article p { max-width: 68ch; line-height: 1.8; color: var(--muted); }
@@ -607,8 +724,47 @@ body.slate-flash::after {
 }
 
 @keyframes breathe {
-  0%, 100% { transform: scale(1); opacity: 0.96; }
-  50% { transform: scale(1.012); opacity: 1; }
+  0%, 100% { transform: scale(0.998); opacity: 0.985; }
+  50% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes hazeFloatA {
+  from { transform: translate3d(calc(var(--parallax-x) * 0.22 - 1.5%), calc(var(--parallax-y) * 0.22 - 1%), 0) scale(1.02); }
+  to { transform: translate3d(calc(var(--parallax-x) * 0.22 + 1%), calc(var(--parallax-y) * 0.22 + 1.2%), 0) scale(1.08); }
+}
+
+@keyframes hazeFloatB {
+  from { transform: translate3d(calc(var(--parallax-x) * 0.35 - 1.1%), calc(var(--parallax-y) * 0.35 + 1.1%), 0) scale(1.01); }
+  to { transform: translate3d(calc(var(--parallax-x) * 0.35 + 1.3%), calc(var(--parallax-y) * 0.35 - 1%), 0) scale(1.06); }
+}
+
+@keyframes hazeFloatC {
+  from { transform: translate3d(calc(var(--parallax-x) * 0.5 - 0.8%), calc(var(--parallax-y) * 0.5 - 0.8%), 0) scale(1.01); }
+  to { transform: translate3d(calc(var(--parallax-x) * 0.5 + 1%), calc(var(--parallax-y) * 0.5 + 0.8%), 0) scale(1.05); }
+}
+
+@keyframes lightLeakA {
+  0%, 100% { transform: translate3d(calc(var(--parallax-x) * 0.8 - 1%), calc(var(--parallax-y) * 0.8 - 1%), 0) rotate(-1.2deg); }
+  50% { transform: translate3d(calc(var(--parallax-x) * 0.8 + 1.4%), calc(var(--parallax-y) * 0.8 + 0.8%), 0) rotate(1.4deg); }
+}
+
+@keyframes lightLeakB {
+  0%, 100% { transform: translate3d(calc(var(--parallax-x) * 0.95 - 1.2%), calc(var(--parallax-y) * 0.95 + 0.8%), 0); }
+  50% { transform: translate3d(calc(var(--parallax-x) * 0.95 + 1.3%), calc(var(--parallax-y) * 0.95 - 1%), 0); }
+}
+
+@keyframes grainShift {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(0.8%, -0.6%, 0); }
+}
+
+@keyframes memoryDrift {
+  from { transform: translateX(-10%); }
+  to { transform: translateX(10%); }
+}
+
+@keyframes echoOut {
+  to { opacity: 0; transform: translate(-50%, -50%) scale(18); }
 }
 
 @keyframes tideShift {
@@ -652,7 +808,9 @@ body.slate-flash::after {
 @media (prefers-reduced-motion: reduce) {
   :root { --motion-intensity: 0; }
   *, *::before, *::after { animation: none !important; transition-duration: 0ms !important; }
-  .ambient-gradient, .ambient-leak, .ambient-fog { transform: none !important; }
+  .dream-haze, .dream-leak { transform: none !important; }
+  .whisper-line { display: none; }
+  .slate { animation: none !important; }
   .slate::before,
   .slate::after,
   .slate-glow { opacity: 0.25; }
@@ -665,6 +823,7 @@ body.slate-flash::after {
 }
 
 @media (max-width: 640px) {
+  .whisper-line { display: none; }
   .film-grid,
   .writing-grid { grid-template-columns: 1fr; }
   .slate-meta {

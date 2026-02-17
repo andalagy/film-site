@@ -22,9 +22,16 @@ const SLATE_LIGHT_SEED = {
   delayC: (Math.random() * -9).toFixed(2)
 };
 
+const WHISPER_LINES = [
+  'the frame remembers what the cut forgets.',
+  'light keeps a second memory in the corners.',
+  'every silence is still moving.'
+];
+
 const app = document.querySelector('#app');
 const cursor = document.querySelector('.cursor');
-const ambientLeak = document.querySelector('.ambient-leak');
+const dreamStack = document.querySelector('.dream-stack');
+const whisperLine = document.querySelector('[data-whisper]');
 const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 let ambientRaf = 0;
@@ -180,14 +187,15 @@ function filmCard(film) {
   const details = `${film.year} · ${film.runtime} · ${film.role}`;
   const filmPath = filmDetailPath(cleanId);
   return `<article class="film-card">
-      <a href="${toUrl(filmPath)}" data-link="${filmPath}" class="film-link">
+      <a href="${toUrl(filmPath)}" data-link="${filmPath}" class="film-link" data-echo-target>
         ${renderYouTubeThumbnail({ id: cleanId, alt: `${lower(film.title)} thumbnail` })}
+        <span class="memory-smear" aria-hidden="true"></span>
         <span class="film-overlay">
           <span>${lower(film.statement)}</span>
           <small>${lower(details)}</small>
         </span>
       </a>
-      <h3 class="ghost-title" data-title="${lower(film.title)}">${lower(film.title)}</h3>
+      <h3 class="ghost-title" data-title="${lower(film.title)}"><a href="${toUrl(filmPath)}" data-link="${filmPath}" data-echo-target class="film-title-link">${lower(film.title)}</a></h3>
     </article>`;
 }
 
@@ -199,7 +207,7 @@ function writingCard(item) {
   const writingPath = writingDetailPath(item.slug);
   const coverImage = String(item.coverImage || item.image || item.cover || '').trim();
   return `<article class="writing-card">
-    <a href="${toUrl(writingPath)}" data-link="${writingPath}" class="writing-link" aria-label="${lower(item.title)}">
+    <a href="${toUrl(writingPath)}" data-link="${writingPath}" class="writing-link" data-echo-target aria-label="${lower(item.title)}">
       <div class="writing-media">
         ${
           coverImage
@@ -208,12 +216,12 @@ function writingCard(item) {
                 <span class="writing-haze"></span>
               </div>`
         }
-        <div class="writing-overlay">
+        <span class="memory-smear" aria-hidden="true"></span><div class="writing-overlay">
           <p>${lower(item.excerpt)}</p>
         </div>
       </div>
     </a>
-    <h3 class="ghost-title writing-title" data-title="${lower(item.title)}"><a href="${toUrl(writingPath)}" data-link="${writingPath}" class="writing-title-link">${lower(item.title)}</a></h3>
+    <h3 class="ghost-title writing-title" data-title="${lower(item.title)}"><a href="${toUrl(writingPath)}" data-link="${writingPath}" class="writing-title-link" data-echo-target>${lower(item.title)}</a></h3>
   </article>`;
 }
 
@@ -402,7 +410,8 @@ function bindDynamicInteractions() {
   if (quote) quote.remove();
 
   setupSlateLightSeed();
-
+  setupClickEcho();
+  setupWhisperPulse();
 
   setupFilmEmbedFallback();
 }
@@ -550,31 +559,78 @@ function setupAmbientSeed() {
   root.style.setProperty('--gradient-jitter-a', `${((Math.random() * 12) - 6).toFixed(2)}%`);
   root.style.setProperty('--gradient-jitter-b', `${((Math.random() * 12) - 6).toFixed(2)}%`);
   root.style.setProperty('--leak-spin', `${((Math.random() * 4) - 2).toFixed(2)}deg`);
+  root.style.setProperty('--leak-a-x', `${(Math.random() * 85).toFixed(2)}%`);
+  root.style.setProperty('--leak-a-y', `${(Math.random() * 75).toFixed(2)}%`);
+  root.style.setProperty('--leak-b-x', `${(Math.random() * 85).toFixed(2)}%`);
+  root.style.setProperty('--leak-b-y', `${(Math.random() * 75).toFixed(2)}%`);
+  root.style.setProperty('--leak-a-delay', `${(Math.random() * -30).toFixed(2)}s`);
+  root.style.setProperty('--leak-b-delay', `${(Math.random() * -32).toFixed(2)}s`);
 }
 
 function setupAmbientDrift() {
-  if (reduceMotion || isTouchDevice || !ambientLeak) return;
+  if (reduceMotion || isTouchDevice || !dreamStack) return;
 
   window.addEventListener('mousemove', (event) => {
     ambientMotion.tx = event.clientX;
     ambientMotion.ty = event.clientY;
-  });
+  }, { passive: true });
 
   const loop = () => {
     ambientMotion.x += (ambientMotion.tx - ambientMotion.x) * 0.045;
     ambientMotion.y += (ambientMotion.ty - ambientMotion.y) * 0.045;
     const nx = ambientMotion.x / window.innerWidth;
     const ny = ambientMotion.y / window.innerHeight;
-    document.documentElement.style.setProperty('--leak-x', `${(nx * 100).toFixed(2)}vw`);
-    document.documentElement.style.setProperty('--leak-y', `${(ny * 100).toFixed(2)}vh`);
     document.documentElement.style.setProperty('--float-x', `${((nx - 0.5) * 5).toFixed(2)}px`);
     document.documentElement.style.setProperty('--float-y', `${((ny - 0.5) * 5).toFixed(2)}px`);
-    document.documentElement.style.setProperty('--parallax-x', `${((nx - 0.5) * 6).toFixed(2)}px`);
-    document.documentElement.style.setProperty('--parallax-y', `${((ny - 0.5) * 6).toFixed(2)}px`);
+    document.documentElement.style.setProperty('--parallax-x', `${((nx - 0.5) * 8).toFixed(2)}px`);
+    document.documentElement.style.setProperty('--parallax-y', `${((ny - 0.5) * 8).toFixed(2)}px`);
     ambientRaf = window.requestAnimationFrame(loop);
   };
 
   if (!ambientRaf) ambientRaf = window.requestAnimationFrame(loop);
+}
+
+
+function setupClickEcho() {
+  document.querySelectorAll('.echo-ring').forEach((ring) => ring.remove());
+  document.querySelectorAll('[data-echo-target]').forEach((target) => {
+    target.addEventListener('click', (event) => {
+      const rect = target.getBoundingClientRect();
+      const ring = document.createElement('span');
+      ring.className = 'echo-ring';
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      ring.style.setProperty('--echo-x', `${x}px`);
+      ring.style.setProperty('--echo-y', `${y}px`);
+      target.appendChild(ring);
+      window.setTimeout(() => ring.remove(), 520);
+    }, { passive: true });
+  });
+}
+
+function setupWhisperPulse() {
+  if (!whisperLine) return;
+  if (reduceMotion) {
+    whisperLine.textContent = '';
+    return;
+  }
+
+  let index = Math.floor(Math.random() * WHISPER_LINES.length);
+  const swapLine = () => {
+    index = (index + 1) % WHISPER_LINES.length;
+    whisperLine.classList.remove('is-visible');
+    window.setTimeout(() => {
+      whisperLine.textContent = lower(WHISPER_LINES[index]);
+      whisperLine.classList.add('is-visible');
+    }, 900);
+  };
+
+  whisperLine.textContent = lower(WHISPER_LINES[index]);
+  whisperLine.classList.add('is-visible');
+  if (!whisperLine.dataset.bound) {
+    whisperLine.dataset.bound = '1';
+    window.setInterval(swapLine, 15000 + Math.floor(Math.random() * 5000));
+  }
 }
 
 function applyScrollDissolve() {
