@@ -190,6 +190,53 @@ body.home-page main {
 
 .slate p { color: var(--muted); max-width: 62ch; line-height: 1.6; }
 
+.slate-meta {
+  margin: 1.15rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.58rem;
+  position: relative;
+  z-index: 1;
+}
+
+.slate-chip {
+  margin: 0;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.015));
+  backdrop-filter: blur(4px);
+  border-radius: 8px;
+  transition: border-color 0.25s ease, background-color 0.25s ease;
+}
+
+.slate-chip:hover,
+.slate-chip:focus-within {
+  border-color: rgba(255, 231, 198, 0.28);
+  background: linear-gradient(180deg, rgba(255, 244, 224, 0.07), rgba(255, 255, 255, 0.03));
+}
+
+.slate-chip dt {
+  font-size: 0.68rem;
+  letter-spacing: 0.09em;
+  text-transform: lowercase;
+  color: rgba(226, 226, 230, 0.6);
+  margin: 0;
+}
+
+.slate-chip dd {
+  margin: 0.2rem 0 0;
+  padding-top: 0.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.9rem;
+  color: rgba(244, 241, 235, 0.95);
+  letter-spacing: 0.03em;
+}
+
+.slate-meta-value.is-updating {
+  animation: slateMetaTick 0.38s ease;
+}
+
 .quiet-btn { margin-top: 1rem; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.01); padding: 0.65rem 1rem; }
 .quiet-btn:hover, .quiet-btn:focus-visible { background: rgba(255, 255, 255, 0.08); }
 
@@ -469,6 +516,11 @@ body.slate-flash::after {
   to { opacity: 0; }
 }
 
+@keyframes slateMetaTick {
+  0% { opacity: 0.55; transform: translateY(-1px); filter: blur(0.6px); }
+  100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root { --motion-intensity: 0; }
   *, *::before, *::after { animation: none !important; transition-duration: 0ms !important; }
@@ -480,9 +532,11 @@ body.slate-flash::after {
 
 @media (max-width: 900px) {
   body.home-page main { padding-top: 2.8rem; }
+  .slate-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .writing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 640px) {
+  .slate-meta { grid-template-columns: 1fr; }
   .writing-grid { grid-template-columns: 1fr; }
 }

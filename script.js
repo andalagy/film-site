@@ -4,6 +4,19 @@ const WRITINGS = Array.isArray(window.WRITINGS_DATA) ? window.WRITINGS_DATA : []
 const LIST_CTA_LABEL = 'show more';
 const YOUTUBE_ID_REGEX = /^[A-Za-z0-9_-]{11}$/;
 const EMBED_LOAD_TIMEOUT_MS = 3200;
+const SLATE_META = {
+  scene: '01',
+  take: 4,
+  rollPrefix: 'a',
+  roll: 5,
+  date: '',
+  time: '',
+  format: '24fps',
+  lens: '35mm',
+  location: 'los angeles',
+  status: 'in post',
+  takeRange: [1, 12]
+};
 
 const app = document.querySelector('#app');
 const cursor = document.querySelector('.cursor');
@@ -49,6 +62,97 @@ function routeFromLocation() {
 
 function lower(text) {
   return String(text || '').toLowerCase();
+}
+
+function pad2(value) {
+  return String(value).padStart(2, '0');
+}
+
+function formatSlateDate(date) {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: '2-digit',
+    year: 'numeric'
+  })
+    .format(date)
+    .toLowerCase();
+}
+
+function formatSlateTime(date) {
+  return new Intl.DateTimeFormat('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).format(date);
+}
+
+function initSlateMeta() {
+  if (SLATE_META.date && SLATE_META.time) return;
+  const now = new Date();
+  SLATE_META.date = formatSlateDate(now);
+  SLATE_META.time = formatSlateTime(now);
+}
+
+function currentSlateValues() {
+  initSlateMeta();
+  return {
+    scene: lower(SLATE_META.scene),
+    take: pad2(SLATE_META.take),
+    roll: `${lower(SLATE_META.rollPrefix)}${pad2(SLATE_META.roll)}`,
+    date: lower(SLATE_META.date),
+    time: lower(SLATE_META.time),
+    format: lower(SLATE_META.format),
+    lens: lower(SLATE_META.lens),
+    location: lower(SLATE_META.location),
+    status: lower(SLATE_META.status)
+  };
+}
+
+function slateMetaMarkup() {
+  const values = currentSlateValues();
+  const fields = [
+    ['scene', values.scene],
+    ['take', values.take],
+    ['roll', values.roll],
+    ['date', values.date],
+    ['time', values.time],
+    ['fps', values.format],
+    ['lens', values.lens],
+    ['location', values.location],
+    ['status', values.status]
+  ];
+  return `<dl class="slate-meta" aria-label="slate metadata">${fields
+    .map(
+      ([label, value]) =>
+        `<div class="slate-chip"><dt>${label}</dt><dd class="slate-meta-value" data-slate-value="${label}">${value}</dd></div>`
+    )
+    .join('')}</dl>`;
+}
+
+function advanceSlateTake() {
+  const [minTake, maxTake] = SLATE_META.takeRange;
+  if (SLATE_META.take >= maxTake) {
+    SLATE_META.take = minTake;
+    SLATE_META.roll += 1;
+    return;
+  }
+  SLATE_META.take += 1;
+}
+
+function animateSlateValue(label) {
+  const valueNode = document.querySelector(`[data-slate-value="${label}"]`);
+  if (!valueNode) return;
+  valueNode.classList.remove('is-updating');
+  void valueNode.offsetWidth;
+  valueNode.classList.add('is-updating');
+}
+
+function syncSlateMetaUI() {
+  const values = currentSlateValues();
+  Object.entries(values).forEach(([label, value]) => {
+    const valueNode = document.querySelector(`[data-slate-value="${label}"]`);
+    if (valueNode) valueNode.textContent = value;
+  });
 }
 
 function isDev() {
@@ -149,6 +253,7 @@ function homeView() {
         <span class="slate-glow" aria-hidden="true"></span>
         <h1>andrew yan</h1>
         <p>minimal, atmospheric films about memory, tension, and what remains unsaid.</p>
+        ${slateMetaMarkup()}
         <button class="quiet-btn" data-slate-action>enter</button>
       </article>
     </section>
@@ -287,6 +392,12 @@ function bindDynamicInteractions() {
 
   const slateButton = document.querySelector('[data-slate-action]');
   slateButton?.addEventListener('click', () => {
+    advanceSlateTake();
+    syncSlateMetaUI();
+    if (!reduceMotion) {
+      animateSlateValue('take');
+      if (SLATE_META.take === SLATE_META.takeRange[0]) animateSlateValue('roll');
+    }
     const slate = document.querySelector('[data-slate]');
     slate?.classList.remove('clap');
     void slate?.offsetWidth;
