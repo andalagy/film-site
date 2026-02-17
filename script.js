@@ -23,8 +23,6 @@ const cursor = document.querySelector('.cursor');
 const ambientLeak = document.querySelector('.ambient-leak');
 const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-let homeExpanded = false;
-let homeWritingsExpanded = false;
 let ambientRaf = 0;
 const ambientMotion = {
   tx: window.innerWidth * 0.5,
@@ -219,9 +217,23 @@ function writingDetailPath(slug) {
 function writingCard(item) {
   const writingPath = writingDetailPath(item.slug);
   const detailBits = [item.year, item.pages].filter(Boolean).map((bit) => lower(bit));
+  const coverImage = String(item.coverImage || item.image || item.cover || '').trim();
   return `<article class="writing-card">
     <a href="${toUrl(writingPath)}" data-link="${writingPath}" class="writing-link">
-      <div class="writing-overlay">
+      <div class="writing-media">
+        ${
+          coverImage
+            ? `<img class="writing-cover-image" src="${coverImage}" alt="${lower(item.title)} cover" loading="lazy" />`
+            : `<div class="writing-text-cover" aria-hidden="true">
+                <span class="writing-haze"></span>
+                <div class="writing-overlay">
+                  <h3>${lower(item.title)}</h3>
+                  <p>${lower(item.excerpt)}</p>
+                </div>
+              </div>`
+        }
+      </div>
+      <div class="writing-copy">
         <h3>${lower(item.title)}</h3>
         <p>${lower(item.excerpt)}</p>
         ${detailBits.length ? `<small>${detailBits.join(' · ')}</small>` : ''}
@@ -246,8 +258,8 @@ function aboutBlock() {
 }
 
 function homeView() {
-  const shown = homeExpanded ? FILMS : FILMS.slice(0, 4);
-  const shownWritings = homeWritingsExpanded ? WRITINGS : WRITINGS.slice(0, 4);
+  const shown = FILMS.slice(0, 4);
+  const shownWritings = WRITINGS.slice(0, 4);
   return `<section class="slate-wrap" id="slate">
       <article class="slate" data-slate>
         <span class="slate-glow" aria-hidden="true"></span>
@@ -262,7 +274,7 @@ function homeView() {
         <h2>work</h2>
       </div>
       <div class="film-grid">${shown.map(filmCard).join('')}</div>
-      <button class="quiet-btn" data-toggle-home>${homeExpanded ? 'show less' : LIST_CTA_LABEL}</button>
+      <a class="quiet-btn section-cta" href="${toUrl('/films')}" data-link="/films">${LIST_CTA_LABEL} →</a>
     </section>
     <section class="home-writings">
       <div class="heading-row">
@@ -271,7 +283,7 @@ function homeView() {
       <div class="writing-grid">
         ${shownWritings.map(writingCard).join('')}
       </div>
-      <button class="quiet-btn" data-toggle-home-writings>${homeWritingsExpanded ? 'show less' : LIST_CTA_LABEL}</button>
+      <a class="quiet-btn section-cta" href="${toUrl('/writings')}" data-link="/writings">${LIST_CTA_LABEL} →</a>
     </section>
     ${aboutBlock()}`;
 }
@@ -408,22 +420,6 @@ function bindDynamicInteractions() {
       const filmsSection = document.querySelector('#films');
       filmsSection?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
     }, reduceMotion ? 0 : 420);
-  });
-
-  const toggle = document.querySelector('[data-toggle-home]');
-  toggle?.addEventListener('click', () => {
-    homeExpanded = !homeExpanded;
-    render();
-    const filmsSection = document.querySelector('#films');
-    filmsSection?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
-  });
-
-  const writingToggle = document.querySelector('[data-toggle-home-writings]');
-  writingToggle?.addEventListener('click', () => {
-    homeWritingsExpanded = !homeWritingsExpanded;
-    render();
-    const writingsSection = document.querySelector('.home-writings');
-    writingsSection?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
   });
 
   const quote = document.querySelector('[data-pull-quote]');
