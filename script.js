@@ -10,6 +10,7 @@ const ambientLeak = document.querySelector('.ambient-leak');
 const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 let homeExpanded = false;
+let activeWritingSlug = '';
 let ambientRaf = 0;
 const ambientMotion = {
   tx: window.innerWidth * 0.5,
@@ -116,8 +117,10 @@ function aboutBlock() {
 
 function homeView() {
   const shown = homeExpanded ? FILMS : FILMS.slice(0, 4);
+  const writingPreview = WRITINGS.slice(0, 3);
   return `<section class="slate-wrap" id="slate">
       <article class="slate" data-slate>
+        <span class="slate-glow" aria-hidden="true"></span>
         <p>director's slate</p>
         <h1>andrew yan</h1>
         <p>minimal, atmospheric films about memory, tension, and what remains unsaid.</p>
@@ -130,6 +133,22 @@ function homeView() {
       </div>
       <div class="film-grid">${shown.map(filmCard).join('')}</div>
       <button class="quiet-btn" data-toggle-home>${homeExpanded ? 'show less' : 'show more'}</button>
+    </section>
+    <section class="home-writings">
+      <div class="heading-row">
+        <h2>writings</h2>
+      </div>
+      <div class="writing-preview-list">
+        ${writingPreview
+          .map(
+            (item) => `<a class="writing-preview-item" href="${toUrl(`/writings?work=${encodeURIComponent(item.slug)}`)}" data-link="/writings?work=${encodeURIComponent(item.slug)}">
+              <h3>${lower(item.title)}</h3>
+              <p>${lower(item.excerpt)}</p>
+            </a>`
+          )
+          .join('')}
+      </div>
+      <a class="view-all-link" href="${toUrl('/writings')}" data-link="/writings">view all writings</a>
     </section>
     ${aboutBlock()}`;
 }
@@ -178,34 +197,45 @@ function filmFallbackView(film, reason) {
   </div>`;
 }
 
-function writingsView() {
-  const quote = WRITINGS[0]?.excerpt || '';
-  return `<section class="page-section writings" data-ambient-shift>
-    <h1>writings</h1>
-    <p class="pull-quote" data-pull-quote>${lower(quote)}</p>
-    <div class="writing-list">
-      ${WRITINGS.map(
-        (item, index) => `<article class="writing-item" data-excerpt="${lower(item.excerpt)}" data-mood="${['amber', 'lilac', 'blue'][index % 3]}">
-          <h2>${lower(item.title)}</h2>
-          <p>${lower(item.excerpt)}</p>
-          <span class="mood-tag">mood ${index + 1}</span>
-          <a href="${toUrl(`/writings/${encodeURIComponent(item.slug)}`)}" data-link="/writings/${encodeURIComponent(item.slug)}">read</a>
-        </article>`
-      ).join('')}
-    </div>
-  </section>`;
+function getRequestedWritingSlug(routeSlug = '') {
+  const fromRoute = routeSlug && WRITINGS.find((entry) => entry.slug === routeSlug) ? routeSlug : '';
+  const query = new URLSearchParams(window.location.search);
+  const fromQuery = query.get('work') || '';
+  const fromHash = decodeURIComponent(window.location.hash.replace('#', ''));
+  if (WRITINGS.find((entry) => entry.slug === fromRoute)) return fromRoute;
+  if (WRITINGS.find((entry) => entry.slug === fromQuery)) return fromQuery;
+  if (WRITINGS.find((entry) => entry.slug === fromHash)) return fromHash;
+  return WRITINGS[0]?.slug || '';
 }
 
-function writingDetailView(slug) {
-  const item = WRITINGS.find((entry) => entry.slug === slug);
-  if (!item) return `<section class="page-section"><h1>writing not found</h1></section>`;
-  return `<section class="page-section writing-detail">
-    <a class="back-link" href="${toUrl('/writings')}" data-link="/writings">back</a>
-    <h1>${lower(item.title)}</h1>
-    <article>${item.content
-      .split('\n\n')
-      .map((paragraph) => `<p>${lower(paragraph)}</p>`)
-      .join('')}</article>
+function writingContentHtml(item) {
+  return item.content
+    .split('\n\n')
+    .map((paragraph) => `<p>${lower(paragraph)}</p>`)
+    .join('');
+}
+
+function writingsView(routeSlug = '') {
+  const selectedSlug = getRequestedWritingSlug(routeSlug);
+  const selected = WRITINGS.find((entry) => entry.slug === selectedSlug) || WRITINGS[0];
+  activeWritingSlug = selected?.slug || '';
+
+  return `<section class="page-section writings" data-ambient-shift>
+    <h1>writings</h1>
+    <div class="writings-layout">
+      <div class="writing-list" data-writing-list>
+      ${WRITINGS.map(
+        (item, index) => `<button class="writing-item ${item.slug === activeWritingSlug ? 'is-selected' : ''}" data-writing-select="${item.slug}" data-excerpt="${lower(item.excerpt)}" data-mood="${['amber', 'lilac', 'blue'][index % 3]}">
+          <h2>${lower(item.title)}</h2>
+          <p>${lower(item.excerpt)}</p>
+        </button>`
+      ).join('')}
+      </div>
+      <article class="writing-content" id="writing-content" data-writing-content>
+        <h2 data-writing-title>${lower(selected?.title || '')}</h2>
+        <div data-writing-body>${selected ? writingContentHtml(selected) : ''}</div>
+      </article>
+    </div>
   </section>`;
 }
 
@@ -219,9 +249,10 @@ function render() {
   if (route.page === 'films') html = filmsView();
   if (route.page === 'film') html = filmDetailView(route.id);
   if (route.page === 'writings') html = writingsView();
-  if (route.page === 'writing') html = writingDetailView(route.slug);
+  if (route.page === 'writing') html = writingsView(route.slug);
 
   app.innerHTML = html;
+  document.body.classList.toggle('home-page', route.page === 'home');
   updateActiveNav(route.page);
   bindDynamicInteractions();
 
@@ -240,7 +271,7 @@ function updateActiveNav(page) {
       (page === 'home' && target === '/') ||
       (page === 'films' && target === '/films') ||
       (page === 'film' && target.startsWith('/films')) ||
-      (page === 'writings' && target === '/writings') ||
+      (page === 'writings' && target.startsWith('/writings')) ||
       (page === 'writing' && target.startsWith('/writings'));
     link.classList.toggle('is-active', active);
   });
@@ -286,22 +317,10 @@ function bindDynamicInteractions() {
   });
 
   const quote = document.querySelector('[data-pull-quote]');
-  if (quote) {
-    document.querySelectorAll('.writing-item').forEach((item) => {
-      item.addEventListener('mouseenter', () => {
-        updateAmbientMood(item.dataset.mood || 'amber');
-        quote.style.opacity = '0';
-        window.setTimeout(() => {
-          quote.textContent = item.dataset.excerpt || '';
-          quote.style.opacity = '1';
-        }, reduceMotion ? 0 : 140);
-      });
+  if (quote) quote.remove();
 
-      item.addEventListener('mouseleave', () => {
-        updateAmbientMood('');
-      });
-    });
-  }
+  setupWritingSelection();
+  setupSlateLightSeed();
 
   document.querySelectorAll('.film-link').forEach((link) => {
     const preview = link.dataset.preview;
@@ -325,6 +344,51 @@ function bindDynamicInteractions() {
   });
 
   setupFilmEmbedFallback();
+}
+
+function setupWritingSelection() {
+  const writingBody = document.querySelector('[data-writing-body]');
+  const writingTitle = document.querySelector('[data-writing-title]');
+  if (!writingBody || !writingTitle) return;
+
+  const selectWriting = (slug, shouldScroll = false) => {
+    const item = WRITINGS.find((entry) => entry.slug === slug);
+    if (!item) return;
+    activeWritingSlug = item.slug;
+    writingTitle.textContent = lower(item.title);
+    writingBody.innerHTML = writingContentHtml(item);
+    document.querySelectorAll('[data-writing-select]').forEach((button) => {
+      button.classList.toggle('is-selected', button.getAttribute('data-writing-select') === slug);
+    });
+    updateAmbientMood(document.querySelector(`[data-writing-select="${slug}"]`)?.dataset.mood || '');
+    const nextPath = `${toUrl('/writings')}?work=${encodeURIComponent(slug)}`;
+    history.replaceState({}, '', nextPath);
+    if (shouldScroll && window.matchMedia('(max-width: 900px)').matches) {
+      document.querySelector('#writing-content')?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+    }
+  };
+
+  document.querySelectorAll('[data-writing-select]').forEach((button) => {
+    button.addEventListener('click', () => selectWriting(button.getAttribute('data-writing-select') || '', true));
+    button.addEventListener('mouseenter', () => updateAmbientMood(button.dataset.mood || 'amber'));
+    button.addEventListener('mouseleave', () => updateAmbientMood(''));
+  });
+}
+
+function setupSlateLightSeed() {
+  const slate = document.querySelector('[data-slate]');
+  if (!slate || reduceMotion) return;
+
+  const driftX = ((Math.random() * 8) - 4).toFixed(2);
+  const driftY = ((Math.random() * 6) - 3).toFixed(2);
+  const delayA = (Math.random() * -7).toFixed(2);
+  const delayB = (Math.random() * -11).toFixed(2);
+  const delayC = (Math.random() * -9).toFixed(2);
+  slate.style.setProperty('--slate-drift-x', `${driftX}%`);
+  slate.style.setProperty('--slate-drift-y', `${driftY}%`);
+  slate.style.setProperty('--slate-delay-a', `${delayA}s`);
+  slate.style.setProperty('--slate-delay-b', `${delayB}s`);
+  slate.style.setProperty('--slate-delay-c', `${delayC}s`);
 }
 
 function setupFilmEmbedFallback() {
