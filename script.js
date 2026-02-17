@@ -205,6 +205,11 @@ function filmCard(film) {
     </article>`;
 }
 
+window.APP_DATA = {
+  films: FILMS,
+  writings: WRITINGS
+};
+
 function writingDetailPath(slug) {
   return `/writings/${encodeURIComponent(slug)}`;
 }
@@ -255,10 +260,6 @@ function homeView() {
         <h1 data-glitch="andrew yan">andrew yan</h1>
         <p>minimal, atmospheric films about memory, tension, and what remains unsaid.</p>
         ${slateMetaMarkup()}
-        <div class="slate-actions">
-          <button class="quiet-btn" data-slate-action="enter">enter</button>
-          <button class="quiet-btn" data-slate-action="clap">clap</button>
-        </div>
       </article>
     </section>
     <section id="films" class="home-films">
@@ -280,39 +281,6 @@ function homeView() {
     ${aboutBlock()}`;
 }
 
-function filmsView() {
-  return `<section class="page-section"><h1>films</h1><div class="film-grid">${FILMS.map(filmCard).join('')}</div></section>`;
-}
-
-function filmDetailView(id) {
-  const cleanId = cleanVideoId(id);
-  if (!cleanId) return `<section class="page-section"><h1>film not found</h1></section>`;
-  const film = FILMS.find((item) => cleanVideoId(item.id) === cleanId);
-  if (!film) return `<section class="page-section"><h1>film not found</h1></section>`;
-  const validId = isValidVideoId(cleanId);
-  const embedSrc = validId ? buildEmbedSrc(cleanId) : '';
-
-  logDev('render detail', { id: cleanId, embedSrc, validId });
-
-  return `<section class="page-section detail">
-    <a class="back-link" href="${toUrl('/films')}" data-link="/films">back</a>
-    <div class="player-wrap" data-player-wrap data-film-id="${cleanId}" data-state="${validId ? 'embed' : 'fallback'}">
-      <div class="player-ratio">
-        ${
-          validId
-            ? `<iframe key="${cleanId}" data-film-iframe data-film-id="${cleanId}" src="${embedSrc}" title="${lower(
-                film.title
-              )}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`
-            : filmFallbackView(film, 'invalid id')
-        }
-      </div>
-    </div>
-    <h1>${lower(film.title)}</h1>
-    <p>${lower(film.statement)}</p>
-    <p class="meta">${lower(film.year)} · ${lower(film.runtime)} · ${lower(film.role)}</p>
-  </section>`;
-}
-
 function filmFallbackView(film, reason) {
   const thumb = renderYouTubeThumbnail({ id: film.id, alt: `${lower(film.title)} thumbnail` });
   const safeReason = lower(reason || 'embed failed');
@@ -325,33 +293,17 @@ function filmFallbackView(film, reason) {
   </div>`;
 }
 
-function writingContentHtml(item) {
-  return item.content
-    .split('\n\n')
-    .map((paragraph) => `<p>${lower(paragraph)}</p>`)
-    .join('');
-}
-
-function writingsView() {
-  return `<section class="page-section writings" data-ambient-shift>
-    <h1>writings</h1>
-    <div class="writing-grid">
-      ${WRITINGS.map(writingCard).join('')}
-    </div>
-  </section>`;
-}
-
-function writingDetailView(slug) {
-  const item = WRITINGS.find((entry) => entry.slug === slug);
-  if (!item) return `<section class="page-section"><h1>writing not found</h1></section>`;
-  return `<section class="page-section writing-detail">
-    <a class="back-link" href="${toUrl('/writings')}" data-link="/writings">back</a>
-    <h1>${lower(item.title)}</h1>
-    <article>
-      ${writingContentHtml(item)}
-    </article>
-  </section>`;
-}
+window.AppUtils = {
+  toUrl,
+  lower,
+  cleanVideoId,
+  isValidVideoId,
+  buildEmbedSrc,
+  filmFallbackView,
+  filmCard,
+  writingCard,
+  logDev
+};
 
 function render() {
   if (!app) return;
@@ -360,10 +312,10 @@ function render() {
 
   let html = '';
   if (route.page === 'home') html = homeView();
-  if (route.page === 'films') html = filmsView();
-  if (route.page === 'film') html = filmDetailView(route.id);
-  if (route.page === 'writings') html = writingsView();
-  if (route.page === 'writing') html = writingDetailView(route.slug);
+  if (route.page === 'films') html = window.WorkPages?.filmsView?.() || '';
+  if (route.page === 'film') html = window.WorkPages?.filmDetailView?.(route.id) || '';
+  if (route.page === 'writings') html = window.WorkPages?.writingsView?.() || '';
+  if (route.page === 'writing') html = window.WorkPages?.writingDetailView?.(route.slug) || '';
 
   app.innerHTML = html;
   document.body.classList.toggle('home-page', route.page === 'home');
@@ -405,7 +357,7 @@ function clapSlateAndAdvanceMeta() {
   window.setTimeout(() => document.body.classList.remove('slate-flash'), reduceMotion ? 0 : 420);
 }
 
-function handleSlateEnter() {
+function handleSlateInteract() {
   clapSlateAndAdvanceMeta();
 
   const proceed = () => scrollToAnchorId('films');
@@ -436,17 +388,8 @@ function bindDynamicInteractions() {
   applyScrollDissolve();
   initYouTubeThumbnailFallbacks();
 
-  document.querySelectorAll('[data-slate-action]').forEach((button) => {
-    button.addEventListener('click', () => {
-      const action = button.getAttribute('data-slate-action');
-      if (action === 'enter') {
-        handleSlateEnter();
-        return;
-      }
-
-      clapSlateAndAdvanceMeta();
-    });
-  });
+  const slate = document.querySelector('[data-slate]');
+  slate?.addEventListener('click', handleSlateInteract);
 
   const quote = document.querySelector('[data-pull-quote]');
   if (quote) quote.remove();
