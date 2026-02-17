@@ -9,16 +9,18 @@ const SLATE_META = {
   take: 4,
   rollPrefix: 'a',
   roll: 5,
-  date: '',
-  time: '',
-  format: '24fps',
-  lens: '35mm',
-  location: 'los angeles',
   status: 'in post',
   takeRange: [1, 12]
 };
 
-const SLATE_PRIMARY_FIELDS = ['scene', 'take', 'roll'];
+const SLATE_PRIMARY_FIELDS = ['scene', 'take', 'roll', 'status'];
+const SLATE_LIGHT_SEED = {
+  driftX: ((Math.random() * 6) - 3).toFixed(2),
+  driftY: ((Math.random() * 4) - 2).toFixed(2),
+  delayA: (Math.random() * -7).toFixed(2),
+  delayB: (Math.random() * -11).toFixed(2),
+  delayC: (Math.random() * -9).toFixed(2)
+};
 
 const app = document.querySelector('#app');
 const cursor = document.querySelector('.cursor');
@@ -68,42 +70,12 @@ function pad2(value) {
   return String(value).padStart(2, '0');
 }
 
-function formatSlateDate(date) {
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: '2-digit',
-    year: 'numeric'
-  })
-    .format(date)
-    .toLowerCase();
-}
-
-function formatSlateTime(date) {
-  return new Intl.DateTimeFormat('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  }).format(date);
-}
-
-function initSlateMeta() {
-  if (SLATE_META.date && SLATE_META.time) return;
-  const now = new Date();
-  SLATE_META.date = formatSlateDate(now);
-  SLATE_META.time = formatSlateTime(now);
-}
 
 function currentSlateValues() {
-  initSlateMeta();
   return {
     scene: lower(SLATE_META.scene),
     take: pad2(SLATE_META.take),
     roll: `${lower(SLATE_META.rollPrefix)}${pad2(SLATE_META.roll)}`,
-    date: lower(SLATE_META.date),
-    time: lower(SLATE_META.time),
-    format: lower(SLATE_META.format),
-    lens: lower(SLATE_META.lens),
-    location: lower(SLATE_META.location),
     status: lower(SLATE_META.status)
   };
 }
@@ -111,29 +83,12 @@ function currentSlateValues() {
 function slateMetaMarkup() {
   const values = currentSlateValues();
   const primaryFields = SLATE_PRIMARY_FIELDS.map((label) => [label, values[label]]);
-  const extraFields = [
-    ['date', values.date],
-    ['time', values.time],
-    ['fps', values.format],
-    ['lens', values.lens],
-    ['location', values.location],
-    ['status', values.status]
-  ];
   return `<dl class="slate-meta" aria-label="slate metadata">${primaryFields
     .map(
       ([label, value]) =>
         `<div class="slate-chip"><dt>${label}</dt><dd class="slate-meta-value" data-slate-value="${label}">${value}</dd></div>`
     )
-    .join('')}</dl>
-    <details class="slate-extra-meta">
-      <summary>more slate info</summary>
-      <dl>${extraFields
-        .map(
-          ([label, value]) =>
-            `<div class="slate-chip slate-chip-ghost"><dt>${label}</dt><dd class="slate-meta-value" data-slate-value="${label}">${value}</dd></div>`
-        )
-        .join('')}</dl>
-    </details>`;
+    .join('')}</dl>`;
 }
 
 function advanceSlateTake() {
@@ -223,21 +178,16 @@ function filmCard(film) {
   const cleanId = cleanVideoId(film.id);
   if (!cleanId) return '';
   const details = `${film.year} · ${film.runtime} · ${film.role}`;
-  const thumbs = thumbCandidates(cleanId);
-  const preview = thumbs[1] || thumbs[0];
   const filmPath = filmDetailPath(cleanId);
-  const offsetX = Math.round(((film.title.length % 5) - 2) * 1.3);
-  const offsetY = Math.round(((film.year || 0) % 3) - 1);
-  const tilt = (((film.title.length + (film.year || 0)) % 11) - 5) * 0.8;
-  return `<article class="film-card" style="--card-shift-x:${offsetX}px;--card-shift-y:${offsetY}px">
-      <a href="${toUrl(filmPath)}" data-link="${filmPath}" class="film-link" data-preview="${preview}" style="--film-tilt:${tilt.toFixed(2)}deg;--film-overlap:${(offsetY * -3).toFixed(0)}px;">
+  return `<article class="film-card">
+      <a href="${toUrl(filmPath)}" data-link="${filmPath}" class="film-link">
         ${renderYouTubeThumbnail({ id: cleanId, alt: `${lower(film.title)} thumbnail` })}
         <span class="film-overlay">
           <span>${lower(film.statement)}</span>
           <small>${lower(details)}</small>
         </span>
       </a>
-      <h3 data-title="${lower(film.title)}" data-glitch="${lower(film.title)}">${lower(film.title)}</h3>
+      <h3 class="ghost-title" data-title="${lower(film.title)}">${lower(film.title)}</h3>
     </article>`;
 }
 
@@ -258,14 +208,14 @@ function writingCard(item) {
             : `<div class="writing-text-cover" aria-hidden="true">
                 <span class="writing-haze"></span>
                 <div class="writing-overlay">
-                  <h3>${lower(item.title)}</h3>
+                  <h3 class="ghost-title" data-title="${lower(item.title)}">${lower(item.title)}</h3>
                   <p>${lower(item.excerpt)}</p>
                 </div>
               </div>`
         }
       </div>
       <div class="writing-copy">
-        <h3>${lower(item.title)}</h3>
+        <h3 class="ghost-title" data-title="${lower(item.title)}">${lower(item.title)}</h3>
         <p>${lower(item.excerpt)}</p>
         ${detailBits.length ? `<small>${detailBits.join(' · ')}</small>` : ''}
       </div>
@@ -294,7 +244,7 @@ function homeView() {
   return `<section class="slate-wrap" id="slate">
       <article class="slate" data-slate>
         <span class="slate-glow" aria-hidden="true"></span>
-        <h1>andrew yan</h1>
+        <h1 data-glitch="andrew yan">andrew yan</h1>
         <p>minimal, atmospheric films about memory, tension, and what remains unsaid.</p>
         ${slateMetaMarkup()}
         <button class="quiet-btn" data-slate-action>enter</button>
@@ -458,28 +408,7 @@ function bindDynamicInteractions() {
   if (quote) quote.remove();
 
   setupSlateLightSeed();
-  applyDreamOffsets();
 
-  document.querySelectorAll('.film-link').forEach((link) => {
-    const preview = link.dataset.preview;
-    if (preview) {
-      link.style.setProperty('--preview-image', `url("${preview}")`);
-      link.style.backgroundImage = `var(--preview-image)`;
-      link.style.backgroundSize = 'cover';
-      link.style.backgroundPosition = 'center';
-    }
-
-    let sharpenTimer = 0;
-    link.addEventListener('mouseenter', () => {
-      sharpenTimer = window.setTimeout(() => {
-        link.classList.add('hover-settled');
-      }, reduceMotion ? 0 : 150);
-    });
-    link.addEventListener('mouseleave', () => {
-      window.clearTimeout(sharpenTimer);
-      link.classList.remove('hover-settled');
-    });
-  });
 
   setupFilmEmbedFallback();
 }
@@ -501,41 +430,11 @@ function setupSlateLightSeed() {
   const slate = document.querySelector('[data-slate]');
   if (!slate || reduceMotion) return;
 
-  const driftX = ((Math.random() * 8) - 4).toFixed(2);
-  const driftY = ((Math.random() * 6) - 3).toFixed(2);
-  const delayA = (Math.random() * -7).toFixed(2);
-  const delayB = (Math.random() * -11).toFixed(2);
-  const delayC = (Math.random() * -9).toFixed(2);
-  slate.style.setProperty('--slate-drift-x', `${driftX}%`);
-  slate.style.setProperty('--slate-drift-y', `${driftY}%`);
-  slate.style.setProperty('--slate-delay-a', `${delayA}s`);
-  slate.style.setProperty('--slate-delay-b', `${delayB}s`);
-  slate.style.setProperty('--slate-delay-c', `${delayC}s`);
-}
-
-function applyDreamOffsets() {
-  if (reduceMotion) return;
-
-  document.querySelectorAll('.film-card').forEach((card, index) => {
-    const spin = ((Math.random() * 8) - 4).toFixed(2);
-    const driftX = ((Math.random() * 18) - 9).toFixed(0);
-    const driftY = ((Math.random() * 16) - 8).toFixed(0);
-    card.style.setProperty('--card-rotate', `${spin}deg`);
-    card.style.setProperty('--card-shift-x', `${driftX}px`);
-    card.style.setProperty('--card-shift-y', `${driftY}px`);
-    card.style.setProperty('--card-stack', String(index % 3));
-  });
-
-  const title = document.querySelector('.slate h1');
-  if (title) {
-    title.setAttribute('data-glitch', lower(title.textContent));
-    title.style.setProperty('--title-tilt', `${((Math.random() * 6) - 3).toFixed(2)}deg`);
-  }
-
-  const root = document.documentElement;
-  root.style.setProperty('--gradient-jitter-a', `${((Math.random() * 22) - 11).toFixed(2)}%`);
-  root.style.setProperty('--gradient-jitter-b', `${((Math.random() * 24) - 12).toFixed(2)}%`);
-  root.style.setProperty('--leak-spin', `${((Math.random() * 7) - 3.5).toFixed(2)}deg`);
+  slate.style.setProperty('--slate-drift-x', `${SLATE_LIGHT_SEED.driftX}%`);
+  slate.style.setProperty('--slate-drift-y', `${SLATE_LIGHT_SEED.driftY}%`);
+  slate.style.setProperty('--slate-delay-a', `${SLATE_LIGHT_SEED.delayA}s`);
+  slate.style.setProperty('--slate-delay-b', `${SLATE_LIGHT_SEED.delayB}s`);
+  slate.style.setProperty('--slate-delay-c', `${SLATE_LIGHT_SEED.delayC}s`);
 }
 
 function setupFilmEmbedFallback() {
@@ -651,6 +550,14 @@ function setupCursor() {
   });
 }
 
+
+function setupAmbientSeed() {
+  const root = document.documentElement;
+  root.style.setProperty('--gradient-jitter-a', `${((Math.random() * 12) - 6).toFixed(2)}%`);
+  root.style.setProperty('--gradient-jitter-b', `${((Math.random() * 12) - 6).toFixed(2)}%`);
+  root.style.setProperty('--leak-spin', `${((Math.random() * 4) - 2).toFixed(2)}deg`);
+}
+
 function setupAmbientDrift() {
   if (reduceMotion || isTouchDevice || !ambientLeak) return;
 
@@ -666,8 +573,10 @@ function setupAmbientDrift() {
     const ny = ambientMotion.y / window.innerHeight;
     document.documentElement.style.setProperty('--leak-x', `${(nx * 100).toFixed(2)}vw`);
     document.documentElement.style.setProperty('--leak-y', `${(ny * 100).toFixed(2)}vh`);
-    document.documentElement.style.setProperty('--float-x', `${((nx - 0.5) * 8).toFixed(2)}px`);
-    document.documentElement.style.setProperty('--float-y', `${((ny - 0.5) * 10).toFixed(2)}px`);
+    document.documentElement.style.setProperty('--float-x', `${((nx - 0.5) * 5).toFixed(2)}px`);
+    document.documentElement.style.setProperty('--float-y', `${((ny - 0.5) * 5).toFixed(2)}px`);
+    document.documentElement.style.setProperty('--parallax-x', `${((nx - 0.5) * 6).toFixed(2)}px`);
+    document.documentElement.style.setProperty('--parallax-y', `${((ny - 0.5) * 6).toFixed(2)}px`);
     ambientRaf = window.requestAnimationFrame(loop);
   };
 
@@ -676,7 +585,7 @@ function setupAmbientDrift() {
 
 function applyScrollDissolve() {
   if (reduceMotion) return;
-  const sections = document.querySelectorAll('.slate-wrap, .home-films, .about, .page-section');
+  const sections = document.querySelectorAll('.slate-wrap, .home-films, .home-writings, .about, .page-section');
   if (!sections.length) return;
   const viewportCenter = window.innerHeight * 0.5;
   sections.forEach((section) => {
@@ -687,24 +596,9 @@ function applyScrollDissolve() {
   });
 }
 
-function updateAmbientMood(mood) {
-  if (!ambientLeak) return;
-  if (mood === 'lilac') {
-    document.documentElement.style.setProperty('--leak-opacity', '0.34');
-    document.documentElement.style.setProperty('--fog-blur', '54px');
-    return;
-  }
-  if (mood === 'blue') {
-    document.documentElement.style.setProperty('--leak-opacity', '0.26');
-    document.documentElement.style.setProperty('--fog-blur', '62px');
-    return;
-  }
-  document.documentElement.style.setProperty('--leak-opacity', mood ? '0.3' : '0.28');
-  document.documentElement.style.setProperty('--fog-blur', '46px');
-}
-
 setupNavigation();
 setupCursor();
+setupAmbientSeed();
 setupAmbientDrift();
 window.addEventListener('scroll', () => window.requestAnimationFrame(applyScrollDissolve), { passive: true });
 render();
