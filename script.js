@@ -178,9 +178,8 @@ function thumbCandidates(id) {
 function renderYouTubeThumbnail({ id, alt, className = '', loading = 'lazy' }) {
   const safeId = cleanVideoId(id);
   if (!safeId) return `<div class="thumb-placeholder" role="img" aria-label="${alt}"></div>`;
-  const thumbs = thumbCandidates(safeId);
   const classes = className ? ` class="${className}"` : '';
-  return `<img${classes} src="" alt="${alt}" loading="${loading}" data-youtube-thumb="1" data-youtube-id="${safeId}" data-thumbs="${thumbs.join('|')}" data-thumb-index="0" data-thumb-key="${safeId}-0" />`;
+  return `<img${classes} src="" alt="${alt}" loading="${loading}" data-youtube-thumb="1" data-youtube-id="${safeId}" />`;
 }
 
 function filmDetailPath(id) {
@@ -256,7 +255,10 @@ function homeView() {
         <h1 data-glitch="andrew yan">andrew yan</h1>
         <p>minimal, atmospheric films about memory, tension, and what remains unsaid.</p>
         ${slateMetaMarkup()}
-        <button class="quiet-btn" data-slate-action>enter</button>
+        <div class="slate-actions">
+          <button class="quiet-btn" data-slate-action="enter">enter</button>
+          <button class="quiet-btn" data-slate-action="clap">clap</button>
+        </div>
       </article>
     </section>
     <section id="films" class="home-films">
@@ -434,8 +436,17 @@ function bindDynamicInteractions() {
   applyScrollDissolve();
   initYouTubeThumbnailFallbacks();
 
-  const slateButton = document.querySelector('[data-slate-action]');
-  slateButton?.addEventListener('click', handleSlateEnter);
+  document.querySelectorAll('[data-slate-action]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const action = button.getAttribute('data-slate-action');
+      if (action === 'enter') {
+        handleSlateEnter();
+        return;
+      }
+
+      clapSlateAndAdvanceMeta();
+    });
+  });
 
   const quote = document.querySelector('[data-pull-quote]');
   if (quote) quote.remove();

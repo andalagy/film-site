@@ -337,6 +337,16 @@ body.home-page main {
 .quiet-btn { margin-top: 1rem; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.01); padding: 0.65rem 1rem; }
 .quiet-btn:hover, .quiet-btn:focus-visible { background: rgba(255, 255, 255, 0.08); }
 
+.slate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.slate-actions .quiet-btn {
+  margin-top: 1rem;
+}
+
 .section-cta {
   margin-top: 1.4rem;
   padding: 0;
@@ -532,6 +542,8 @@ body.home-page main {
 
 .writing-title {
   margin: 0.7rem 0 0;
+  font-weight: 400;
+  letter-spacing: 0.015em;
 }
 
 
@@ -557,13 +569,6 @@ body.home-page main {
 .writing-title-link:focus-visible {
   outline: 1px solid rgba(255, 255, 255, 0.78);
   outline-offset: 3px;
-}
-
-.writing-title,
-.writing-overlay h3 {
-  margin: 0;
-  font-weight: 400;
-  letter-spacing: 0.015em;
 }
 
 .film-link::before {
@@ -781,16 +786,6 @@ body.slate-flash::after {
 
 @keyframes echoOut {
   to { opacity: 0; transform: translate(-50%, -50%) scale(18); }
-}
-
-@keyframes tideShift {
-  from { transform: translate3d(-1.2%, -1.6%, 0) scale(1.03); }
-  to { transform: translate3d(1.2%, 1%, 0) scale(1.08); }
-}
-
-@keyframes fogDrift {
-  from { transform: translate3d(-2%, 0.6%, 0) scale(1.02); }
-  to { transform: translate3d(1.4%, -1%, 0) scale(1.08); }
 }
 
 @keyframes slateLeakA {
