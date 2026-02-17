@@ -28,6 +28,36 @@ const WHISPER_LINES = [
   'every silence is still moving.'
 ];
 
+// tuning
+// TRAIL_OPACITY, TEXT_FLOAT_OPACITY, MOTE_COUNT, FLICKER_OPACITY, TRANSITION_MS
+const DREAM_TUNING = {
+  TRAIL_OPACITY: 0.34,
+  TEXT_FLOAT_OPACITY: {
+    desktop: [0.04, 0.1],
+    mobile: [0.03, 0.07]
+  },
+  MOTE_COUNT: [10, 22],
+  FLICKER_OPACITY: [0.08, 0.16],
+  TRANSITION_MS: 560
+};
+
+const FLOATING_TEXT_SNIPPETS = [
+  'a room before the story',
+  'light moves without meaning',
+  'don’t explain it',
+  'something is missing',
+  'the cut arrives late',
+  'you can hear the silence',
+  'memory is a camera',
+  'the ending stays',
+  'the frame waits',
+  'a quiet afterimage',
+  'nothing resolves here',
+  'the room keeps listening',
+  'time slips sideways',
+  'the scene keeps breathing'
+];
+
 const app = document.querySelector('#app');
 const cursor = document.querySelector('.cursor');
 const dreamStack = document.querySelector('.dream-stack');
@@ -43,6 +73,7 @@ let memorySubtitleObserver = null;
 let memorySubtitleFadeTimeout = 0;
 let activeMemoryLine = '';
 let filmGateTimer = 0;
+let floatingTextNearTimer = 0;
 const ambientMotion = {
   tx: window.innerWidth * 0.5,
   ty: window.innerHeight * 0.4,
@@ -328,7 +359,7 @@ async function render() {
   if (runTransition && app.innerHTML.trim()) {
     app.classList.remove('visible');
     app.classList.add('is-transitioning');
-    await new Promise((resolve) => window.setTimeout(resolve, 260));
+    await new Promise((resolve) => window.setTimeout(resolve, DREAM_TUNING.TRANSITION_MS));
     if (currentToken !== routeTransitionToken) return;
   }
 
@@ -548,26 +579,43 @@ function setupCursor() {
   let raf = 0;
   let x = 0;
   let y = 0;
+  let moving = false;
+  let lastMoveAt = 0;
+  const TRAIL_FADE_MS = 480;
   const trailPoints = trailNodes.map(() => ({ x: 0, y: 0 }));
+
+  const runTrail = () => {
+    cursor.style.transform = `translate(${x}px, ${y}px)`;
+    if (!trailNodes.length) {
+      raf = 0;
+      return;
+    }
+    const age = performance.now() - lastMoveAt;
+    const fade = moving ? 1 : Math.max(0, 1 - (age / TRAIL_FADE_MS));
+    trailPoints.forEach((point, index) => {
+      const target = index === 0 ? { x, y } : trailPoints[index - 1];
+      point.x += (target.x - point.x) * (0.24 - index * 0.025);
+      point.y += (target.y - point.y) * (0.24 - index * 0.025);
+      const node = trailNodes[index];
+      node.style.transform = `translate(${point.x}px, ${point.y}px)`;
+      node.style.opacity = String(fade * Math.max(0.12, DREAM_TUNING.TRAIL_OPACITY - index * 0.07));
+    });
+
+    if (!moving && age > TRAIL_FADE_MS) {
+      raf = 0;
+      return;
+    }
+    moving = false;
+    raf = window.requestAnimationFrame(runTrail);
+  };
 
   window.addEventListener('mousemove', (event) => {
     x = event.clientX;
     y = event.clientY;
+    moving = true;
+    lastMoveAt = performance.now();
     if (raf) return;
-    raf = window.requestAnimationFrame(() => {
-      cursor.style.transform = `translate(${x}px, ${y}px)`;
-      if (trailNodes.length) {
-        trailPoints.forEach((point, index) => {
-          const target = index === 0 ? { x, y } : trailPoints[index - 1];
-          point.x += (target.x - point.x) * (0.16 - index * 0.018);
-          point.y += (target.y - point.y) * (0.16 - index * 0.018);
-          const node = trailNodes[index];
-          node.style.transform = `translate(${point.x}px, ${point.y}px)`;
-          node.style.opacity = '1';
-        });
-      }
-      raf = 0;
-    });
+    raf = window.requestAnimationFrame(runTrail);
   });
 
   document.addEventListener('pointerover', (event) => {
@@ -585,7 +633,7 @@ function createCursorTrail() {
   for (let i = 0; i < count; i += 1) {
     const node = document.createElement('span');
     node.className = 'cursor-trail-dot';
-    node.style.transitionDuration = `${170 + i * 55}ms`;
+    node.style.transitionDuration = `${160 + i * 45}ms`;
     document.body.appendChild(node);
     nodes.push(node);
   }
@@ -600,16 +648,25 @@ function setupHeadingBreath() {
   headingBreathObserver = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
         const heading = entry.target;
+        if (entry.intersectionRatio < 0.42) {
+          heading.dataset.breathReady = '1';
+          heading.classList.remove('focus-breath');
+          return;
+        }
+        if (!entry.isIntersecting || heading.dataset.breathReady !== '1') return;
         heading.classList.remove('focus-breath');
         void heading.offsetWidth;
         heading.classList.add('focus-breath');
+        heading.dataset.breathReady = '0';
       });
     },
-    { threshold: 0.55 }
+    { threshold: [0.42, 0.66] }
   );
-  headings.forEach((heading) => headingBreathObserver.observe(heading));
+  headings.forEach((heading) => {
+    heading.dataset.breathReady = '1';
+    headingBreathObserver.observe(heading);
+  });
 }
 
 function setupMemorySubtitle() {
@@ -668,10 +725,12 @@ function setupMemorySubtitle() {
 
 function queueFilmGateFlicker() {
   if (reduceMotion || !filmGate) return;
-  const nextDelay = 12000 + Math.random() * 13000;
+  const nextDelay = 10000 + Math.random() * 14000;
   filmGateTimer = window.setTimeout(() => {
+    filmGate.style.setProperty('--flicker-opacity', (DREAM_TUNING.FLICKER_OPACITY[0] + Math.random() * (DREAM_TUNING.FLICKER_OPACITY[1] - DREAM_TUNING.FLICKER_OPACITY[0])).toFixed(3));
+    filmGate.style.setProperty('--flicker-jitter', `${(Math.random() > 0.5 ? 1 : -1) * (1 + Math.random())}px`);
     filmGate.classList.add('is-flicker');
-    const activeFor = 150 + Math.random() * 150;
+    const activeFor = 150 + Math.random() * 100;
     window.setTimeout(() => {
       filmGate.classList.remove('is-flicker');
       queueFilmGateFlicker();
@@ -698,18 +757,116 @@ function spawnDustMotes(tile) {
   if (tile.querySelector('.dust-layer')) return;
   const layer = document.createElement('span');
   layer.className = 'dust-layer';
-  const count = 6 + Math.floor(Math.random() * 7);
+  const count = DREAM_TUNING.MOTE_COUNT[0] + Math.floor(Math.random() * (DREAM_TUNING.MOTE_COUNT[1] - DREAM_TUNING.MOTE_COUNT[0] + 1));
+  let maxDurationMs = 0;
   for (let i = 0; i < count; i += 1) {
     const mote = document.createElement('span');
     mote.className = 'dust-mote';
     mote.style.setProperty('--dust-x', `${Math.random() * 100}%`);
-    mote.style.setProperty('--dust-delay', `${(Math.random() * 220).toFixed(0)}ms`);
-    mote.style.setProperty('--dust-duration', `${2.4 + Math.random() * 1.5}s`);
+    mote.style.setProperty('--dust-delay', `${(Math.random() * 260).toFixed(0)}ms`);
+    const duration = 2.5 + Math.random() * 2.5;
+    const driftX = -14 + Math.random() * 28;
+    const driftY = -48 - Math.random() * 40;
+    const size = 1 + Math.random() * 3;
+    const blur = 0.5 + Math.random() * 1.5;
+    const opacity = 0.12 + Math.random() * 0.1;
+    mote.style.setProperty('--dust-duration', `${duration.toFixed(2)}s`);
+    mote.style.setProperty('--dust-drift-x', `${driftX.toFixed(2)}px`);
+    mote.style.setProperty('--dust-drift-y', `${driftY.toFixed(2)}px`);
+    mote.style.setProperty('--dust-size', `${size.toFixed(2)}px`);
+    mote.style.setProperty('--dust-blur', `${blur.toFixed(2)}px`);
+    mote.style.setProperty('--dust-opacity', opacity.toFixed(2));
+    maxDurationMs = Math.max(maxDurationMs, duration * 1000 + 260);
     layer.appendChild(mote);
   }
   tile.appendChild(layer);
   const removeLayer = () => layer.remove();
-  window.setTimeout(removeLayer, 2300);
+  window.setTimeout(removeLayer, Math.min(5600, maxDurationMs));
+}
+
+function randomFromRange([min, max]) {
+  return min + Math.random() * (max - min);
+}
+
+function setupFloatingTextLayer() {
+  const existing = document.querySelector('[data-floating-text-layer]');
+  existing?.remove();
+  if (!dreamStack) return;
+
+  const layer = document.createElement('div');
+  layer.className = 'floating-text-layer';
+  layer.dataset.floatingTextLayer = '1';
+  const mobile = window.matchMedia('(max-width: 900px)').matches;
+  const count = reduceMotion
+    ? 3 + Math.floor(Math.random() * 4)
+    : mobile
+      ? 4 + Math.floor(Math.random() * 4)
+      : 6 + Math.floor(Math.random() * 9);
+  const opacityRange = mobile ? DREAM_TUNING.TEXT_FLOAT_OPACITY.mobile : DREAM_TUNING.TEXT_FLOAT_OPACITY.desktop;
+  const lanes = [
+    { x: [2, 20], y: [16, 36] },
+    { x: [3, 19], y: [64, 92] },
+    { x: [80, 97], y: [18, 38] },
+    { x: [80, 96], y: [62, 90] },
+    { x: [4, 16], y: [40, 58] },
+    { x: [84, 96], y: [40, 58] }
+  ];
+
+  for (let i = 0; i < count; i += 1) {
+    const snippet = document.createElement('span');
+    const lane = lanes[i % lanes.length];
+    const phrase = FLOATING_TEXT_SNIPPETS[i % FLOATING_TEXT_SNIPPETS.length];
+    const driftSeconds = randomFromRange([18, 55]);
+    const rotate = randomFromRange([-2, 2]);
+    const blur = randomFromRange([0, 1.5]);
+    const depth = randomFromRange([0.3, 1]);
+
+    snippet.className = 'floating-text-snippet';
+    snippet.textContent = lower(phrase);
+    snippet.style.left = `${randomFromRange(lane.x).toFixed(2)}%`;
+    snippet.style.top = `${randomFromRange(lane.y).toFixed(2)}%`;
+    snippet.style.setProperty('--text-opacity', randomFromRange(opacityRange).toFixed(3));
+    snippet.style.setProperty('--text-rotation', `${rotate.toFixed(2)}deg`);
+    snippet.style.setProperty('--text-blur', `${blur.toFixed(2)}px`);
+    snippet.style.setProperty('--text-duration', `${driftSeconds.toFixed(2)}s`);
+    snippet.style.setProperty('--text-depth', depth.toFixed(3));
+    snippet.style.setProperty('--text-drift-x', `${randomFromRange([-18, 18]).toFixed(2)}px`);
+    snippet.style.setProperty('--text-drift-y', `${randomFromRange([-24, 24]).toFixed(2)}px`);
+    if (Math.random() > 0.72) snippet.style.mixBlendMode = 'screen';
+    if (reduceMotion) snippet.classList.add('is-static');
+    layer.appendChild(snippet);
+  }
+
+  dreamStack.appendChild(layer);
+  if (reduceMotion || isTouchDevice) return;
+
+  const snippets = Array.from(layer.querySelectorAll('.floating-text-snippet'));
+  const updateShift = (event) => {
+    const nx = (event.clientX / window.innerWidth) - 0.5;
+    const ny = (event.clientY / window.innerHeight) - 0.5;
+    snippets.forEach((snippet) => {
+      const depth = Number(snippet.style.getPropertyValue('--text-depth'));
+      snippet.style.setProperty('--text-shift-x', `${(nx * 12 * depth).toFixed(2)}px`);
+      snippet.style.setProperty('--text-shift-y', `${(ny * 12 * depth).toFixed(2)}px`);
+    });
+  };
+
+  window.addEventListener('mousemove', updateShift, { passive: true });
+  window.addEventListener('mousemove', (event) => {
+    window.clearTimeout(floatingTextNearTimer);
+    floatingTextNearTimer = window.setTimeout(() => {
+      snippets.forEach((snippet) => {
+        const rect = snippet.getBoundingClientRect();
+        const cx = rect.left + rect.width * 0.5;
+        const cy = rect.top + rect.height * 0.5;
+        const distance = Math.hypot(event.clientX - cx, event.clientY - cy);
+        if (distance < 95) {
+          snippet.classList.add('is-near');
+          window.setTimeout(() => snippet.classList.remove('is-near'), 1000);
+        }
+      });
+    }, 90);
+  }, { passive: true });
 }
 
 
@@ -837,6 +994,7 @@ setupCursor();
 setupAmbientSeed();
 setupAmbientDrift();
 setupFogRevealTracking();
+setupFloatingTextLayer();
 setupFilmGateFlicker();
 window.addEventListener('scroll', () => window.requestAnimationFrame(applyScrollDissolve), { passive: true });
 render();
