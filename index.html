@@ -100,37 +100,7 @@
       </section>
 
       <section class="section about route-pane" id="home-about" data-route-pane="home">
-        <div class="section-head">
-          <p class="eyebrow">About</p>
-          <h2>About</h2>
-        </div>
-        <div class="about-layout">
-          <img src="https://69914d1f681c79fa0bcd66be.imgix.net/pfp.jpg?w=800&h=800" alt="Portrait of Andrew Yan" />
-          <div>
-            <p>
-              His writing focuses on moments just before something is named—when memory, sound, and emotion are still unsettled. Dialogue circles rather than explains. Ordinary places shift quietly, time bends, and meaning arrives late, if at all.
-              Across film and prose, his work trusts silence and ambiguity, inviting the audience to sit with what lingers rather than what resolves.
-            </p>
-            <ul class="timeline">
-              <li><span>2019</span>First micro unprofessional short made.</li>
-              <li><span>2024</span>First narrative short film made.</li>
-              <li><span>20??</span>Coming soon :)</li>
-              <li><span>20??</span>Coming soon :))</li>
-            </ul>
-          </div>
-        </div>
-        <section class="contact" id="home-contact">
-          <h3>Contact</h3>
-          <a
-            class="btn primary magnetic"
-            href="mailto:g13901913371@gmail.com?subject=Hello%20Andrew"
-            data-say-hello
-            data-email="g13901913371@gmail.com"
-          >
-            Say Hello
-          </a>
-          <p class="contact-feedback" data-contact-feedback aria-live="polite" hidden></p>
-        </section>
+        <div data-about-content-slot></div>
       </section>
 
       <section class="section films route-pane" id="films-page" data-route-pane="films">
@@ -142,39 +112,47 @@
       </section>
 
       <section class="section about route-pane" id="about" data-route-pane="about">
-        <div class="section-head">
-          <p class="eyebrow">Journey</p>
-          <h2>About Andrew</h2>
-        </div>
-        <div class="about-layout">
-          <img src="https://69914d1f681c79fa0bcd66be.imgix.net/pfp.jpg?w=800&h=800" alt="Portrait of Andrew Yan" />
-          <div>
-            <p>
-              His writing focuses on moments just before something is named—when memory, sound, and emotion are still unsettled. Dialogue circles rather than explains. Ordinary places shift quietly, time bends, and meaning arrives late, if at all.
-              Across film and prose, his work trusts silence and ambiguity, inviting the audience to sit with what lingers rather than what resolves.
-            </p>
-            <ul class="timeline">
-              <li><span>2019</span>First micro unprofessional short made.</li>
-              <li><span>2024</span>First narrative short film made.</li>
-              <li><span>20??</span>Coming soon :)</li>
-              <li><span>20??</span>Coming soon :))</li>
-            </ul>
-          </div>
-        </div>
-        <section class="contact" id="contact">
-          <h3>Contact</h3>
-          <a
-            class="btn primary magnetic"
-            href="mailto:g13901913371@gmail.com?subject=Hello%20Andrew"
-            data-say-hello
-            data-email="g13901913371@gmail.com"
-          >
-            Say Hello
-          </a>
-          <p class="contact-feedback" data-contact-feedback aria-live="polite" hidden></p>
-        </section>
+        <div data-about-content-slot></div>
       </section>
     </main>
+
+    <template id="about-content-template">
+      <article class="about-content">
+        <header class="section-head about-head">
+          <p class="eyebrow">About</p>
+          <h1>About</h1>
+        </header>
+        <div class="about-layout">
+          <img class="about-portrait" src="https://69914d1f681c79fa0bcd66be.imgix.net/pfp.jpg?w=320&h=320" alt="Portrait of Andrew Yan" />
+          <div class="about-copy">
+            <p>
+              I tell stories about the pause before meaning arrives—where memory, sound, and feeling stay open long enough to be noticed.
+            </p>
+            <p>
+              Andrew Yan is a filmmaker and writer exploring ambiguity, silence, and emotional residue in everyday spaces. His recent work moves between short narrative film and prose, with an attention to atmosphere over explanation and to what lingers after a scene ends.
+            </p>
+          </div>
+        </div>
+        <section class="about-timeline" aria-labelledby="about-timeline-title">
+          <h2 id="about-timeline-title">Timeline</h2>
+          <ul class="timeline">
+            <li><span>2019</span>First micro short completed.</li>
+            <li><span>2024</span>First narrative short film completed.</li>
+          </ul>
+        </section>
+        <section class="contact" aria-label="Contact Andrew Yan">
+          <h2>Contact</h2>
+          <p>
+            <a href="mailto:g13901913371@gmail.com?subject=Hello%20Andrew" data-say-hello data-email="g13901913371@gmail.com">g13901913371@gmail.com</a>
+            ·
+            <a href="https://www.youtube.com/@AndrewYan-z8d" target="_blank" rel="noopener noreferrer">YouTube</a>
+            ·
+            <a href="https://www.instagram.com/andrewyyan/" target="_blank" rel="noopener noreferrer">Instagram</a>
+          </p>
+          <p class="contact-feedback" data-contact-feedback aria-live="polite" hidden></p>
+        </section>
+      </article>
+    </template>
 
     <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>

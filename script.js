@@ -10,6 +10,12 @@ const filmRuntimeState = {
   films: []
 };
 
+const PAGE_TITLES = {
+  home: 'Andrew Yan — Film',
+  films: 'Andrew Yan — Films',
+  about: 'Andrew Yan — About'
+};
+
 function logMissingElement(name) {
   console.error(`[film-site] Required element missing: ${name}. Feature initialization was skipped safely.`);
 }
@@ -67,6 +73,8 @@ function applyRouteLayout(route = getAppRoute()) {
     navigateToRoute('/about', { replace: true, hash: window.location.hash });
   }
 
+  document.title = PAGE_TITLES[route.page] || PAGE_TITLES.home;
+
   document.body.dataset.page = route.page;
   document.querySelectorAll('[data-route-pane]').forEach((pane) => {
     const paneRoute = pane.getAttribute('data-route-pane');
@@ -79,6 +87,19 @@ function applyRouteLayout(route = getAppRoute()) {
     const isActive = linkRoute === route.page;
     link.classList.toggle('is-active', isActive);
     link.setAttribute('aria-current', isActive ? 'page' : 'false');
+  });
+}
+
+function renderSharedAboutContent() {
+  const template = document.querySelector('#about-content-template');
+  if (!(template instanceof HTMLTemplateElement)) {
+    logMissingElement('#about-content-template');
+    return;
+  }
+
+  document.querySelectorAll('[data-about-content-slot]').forEach((slot) => {
+    if (!(slot instanceof HTMLElement)) return;
+    slot.replaceChildren(template.content.cloneNode(true));
   });
 }
 
@@ -704,6 +725,7 @@ function initializeDirectorSlateComponent() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  renderSharedAboutContent();
   applyRouteLayout(getAppRoute());
   initializeGlobalCursorLock(window.CURSOR_LOCK_CONFIG);
   initializeFilmShowcase();
