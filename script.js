@@ -239,8 +239,7 @@ function writingCard(item) {
 function aboutBlock() {
   return `<section id="about" class="about">
     <h2>about</h2>
-    <p class="thesis">i make films and writing that stay in the quiet after the scene ends.</p>
-    <p>andrew yan is a filmmaker and writer drawn to memory, silence, and unresolved feeling. the work leans toward atmosphere over explanation, and keeps meaning slightly out of reach.</p>
+    <p class="thesis">i am a filmmaker and writer drawn to memory, silence, and unresolved feeling. the work leans toward atmosphere over explanation, and keeps meaning slightly out of reach.</p>
     <p class="contact">
       <a href="mailto:g13901913371@gmail.com?subject=hello%20andrew">g13901913371@gmail.com</a>
       ·
