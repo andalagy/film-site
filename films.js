@@ -48,22 +48,6 @@ const RAW_FILMS = [
     statement: 'stock footage and near futures.',
     year: 2024,
     runtime: '3 min'
-  },
-  {
-    id: 'M7lc1UVf-VE',
-    title: 'still water room',
-    role: 'writer / director',
-    statement: 'a quiet room, a long pause, a decision that does not arrive.',
-    year: 2023,
-    runtime: '7 min'
-  },
-  {
-    id: 'ysz5S6PUM-U',
-    title: 'soft return',
-    role: 'director',
-    statement: 'home appears in fragments before it appears as fact.',
-    year: 2022,
-    runtime: '6 min'
   }
 ];
 
