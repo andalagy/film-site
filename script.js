@@ -32,10 +32,17 @@ const app = document.querySelector('#app');
 const cursor = document.querySelector('.cursor');
 const dreamStack = document.querySelector('.dream-stack');
 const whisperLine = document.querySelector('[data-whisper]');
+const filmGate = document.querySelector('[data-film-gate]');
 const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 let ambientRaf = 0;
 let fogRaf = 0;
+let routeTransitionToken = 0;
+let headingBreathObserver = null;
+let memorySubtitleObserver = null;
+let memorySubtitleFadeTimeout = 0;
+let activeMemoryLine = '';
+let filmGateTimer = 0;
 const ambientMotion = {
   tx: window.innerWidth * 0.5,
   ty: window.innerHeight * 0.4,
@@ -245,7 +252,7 @@ function workCard({ href, title, description, mediaMarkup, cardClass = '' }) {
 
 function aboutBlock() {
   return `<section id="about" class="about">
-    <h2>about</h2>
+    <h2 data-breath-heading>about</h2>
     <p class="thesis">i am a filmmaker and writer drawn to memory, silence, and unresolved feeling. the work leans toward atmosphere over explanation, and keeps meaning slightly out of reach.</p>
     <p class="contact">
       <a href="mailto:g13901913371@gmail.com?subject=hello%20andrew">g13901913371@gmail.com</a>
@@ -264,20 +271,21 @@ function homeView() {
       <article class="slate" data-slate>
         <span class="slate-glow" aria-hidden="true"></span>
         <h1 data-glitch="andrew yan">andrew yan</h1>
+        <p class="memory-subtitle" data-memory-subtitle aria-live="polite">a room before the story</p>
         <p>the world forgetting, the world forgot.</p>
         ${slateMetaMarkup()}
       </article>
     </section>
     <section id="films" class="home-films">
       <div class="heading-row">
-        <h2>work</h2>
+        <h2 data-breath-heading>films</h2>
       </div>
       <div class="film-grid">${shown.map(filmCard).join('')}</div>
       <a class="quiet-btn section-cta" href="${toUrl('/films')}" data-link="/films">${LIST_CTA_LABEL} →</a>
     </section>
     <section class="home-writings">
       <div class="heading-row">
-        <h2>writings</h2>
+        <h2 data-breath-heading>writings</h2>
       </div>
       <div class="writing-grid">
         ${shownWritings.map(writingCard).join('')}
@@ -311,10 +319,18 @@ window.AppUtils = {
   logDev
 };
 
-function render() {
+async function render() {
+  const currentToken = ++routeTransitionToken;
   if (!app) return;
   const route = routeFromLocation();
-  app.classList.remove('visible');
+
+  const runTransition = !reduceMotion;
+  if (runTransition && app.innerHTML.trim()) {
+    app.classList.remove('visible');
+    app.classList.add('is-transitioning');
+    await new Promise((resolve) => window.setTimeout(resolve, 260));
+    if (currentToken !== routeTransitionToken) return;
+  }
 
   let html = '';
   if (route.page === 'home') html = homeView();
@@ -328,7 +344,11 @@ function render() {
   updateActiveNav(route.page);
   bindDynamicInteractions();
 
-  requestAnimationFrame(() => app.classList.add('visible'));
+  requestAnimationFrame(() => {
+    if (currentToken !== routeTransitionToken) return;
+    app.classList.remove('is-transitioning');
+    app.classList.add('visible');
+  });
 
   if (window.location.hash === '#about') scrollToAnchorId('about');
   if (window.location.hash === '#films') scrollToAnchorId('films');
@@ -403,6 +423,9 @@ function bindDynamicInteractions() {
   setupSlateLightSeed();
   setupClickEcho();
   setupWhisperPulse();
+  setupHeadingBreath();
+  setupMemorySubtitle();
+  setupHoverDust();
 
   setupFilmEmbedFallback();
 }
@@ -521,9 +544,11 @@ function setupCursor() {
   }
 
   document.documentElement.classList.add('cursor-hidden');
+  const trailNodes = reduceMotion ? [] : createCursorTrail();
   let raf = 0;
   let x = 0;
   let y = 0;
+  const trailPoints = trailNodes.map(() => ({ x: 0, y: 0 }));
 
   window.addEventListener('mousemove', (event) => {
     x = event.clientX;
@@ -531,6 +556,16 @@ function setupCursor() {
     if (raf) return;
     raf = window.requestAnimationFrame(() => {
       cursor.style.transform = `translate(${x}px, ${y}px)`;
+      if (trailNodes.length) {
+        trailPoints.forEach((point, index) => {
+          const target = index === 0 ? { x, y } : trailPoints[index - 1];
+          point.x += (target.x - point.x) * (0.16 - index * 0.018);
+          point.y += (target.y - point.y) * (0.16 - index * 0.018);
+          const node = trailNodes[index];
+          node.style.transform = `translate(${point.x}px, ${point.y}px)`;
+          node.style.opacity = '1';
+        });
+      }
       raf = 0;
     });
   });
@@ -542,6 +577,139 @@ function setupCursor() {
   document.addEventListener('pointerout', (event) => {
     if (event.target.closest('a, button')) cursor.classList.remove('active');
   });
+}
+
+function createCursorTrail() {
+  const count = 4;
+  const nodes = [];
+  for (let i = 0; i < count; i += 1) {
+    const node = document.createElement('span');
+    node.className = 'cursor-trail-dot';
+    node.style.transitionDuration = `${170 + i * 55}ms`;
+    document.body.appendChild(node);
+    nodes.push(node);
+  }
+  return nodes;
+}
+
+function setupHeadingBreath() {
+  if (reduceMotion) return;
+  headingBreathObserver?.disconnect();
+  const headings = document.querySelectorAll('[data-breath-heading], .about h2');
+  if (!headings.length) return;
+  headingBreathObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const heading = entry.target;
+        heading.classList.remove('focus-breath');
+        void heading.offsetWidth;
+        heading.classList.add('focus-breath');
+      });
+    },
+    { threshold: 0.55 }
+  );
+  headings.forEach((heading) => headingBreathObserver.observe(heading));
+}
+
+function setupMemorySubtitle() {
+  const subtitleNode = document.querySelector('[data-memory-subtitle]');
+  if (!subtitleNode) return;
+
+  const states = {
+    slate: 'a room before the story',
+    films: 'images that remember',
+    writings: 'words that don\'t explain',
+    about: 'a person, not a pitch'
+  };
+
+  const setSubtitle = (line) => {
+    if (!line || line === activeMemoryLine) return;
+    activeMemoryLine = line;
+    subtitleNode.classList.remove('is-visible');
+    window.clearTimeout(memorySubtitleFadeTimeout);
+    memorySubtitleFadeTimeout = window.setTimeout(() => {
+      subtitleNode.textContent = lower(line);
+      subtitleNode.classList.add('is-visible');
+    }, reduceMotion ? 0 : 180);
+  };
+
+  setSubtitle(states.slate);
+
+  if (reduceMotion) return;
+  memorySubtitleObserver?.disconnect();
+  const sections = [
+    { node: document.getElementById('slate'), line: states.slate },
+    { node: document.getElementById('films'), line: states.films },
+    { node: document.querySelector('.home-writings'), line: states.writings },
+    { node: document.getElementById('about'), line: states.about }
+  ].filter((entry) => entry.node);
+  if (!sections.length) return;
+
+  memorySubtitleObserver = new IntersectionObserver(
+    (entries) => {
+      let winner = null;
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        if (!winner || entry.intersectionRatio > winner.ratio) {
+          winner = { ratio: entry.intersectionRatio, line: entry.target.dataset.memoryLine };
+        }
+      });
+      if (winner) setSubtitle(winner.line);
+    },
+    { threshold: [0.25, 0.5, 0.75] }
+  );
+
+  sections.forEach((entry) => {
+    entry.node.dataset.memoryLine = entry.line;
+    memorySubtitleObserver.observe(entry.node);
+  });
+}
+
+function queueFilmGateFlicker() {
+  if (reduceMotion || !filmGate) return;
+  const nextDelay = 12000 + Math.random() * 13000;
+  filmGateTimer = window.setTimeout(() => {
+    filmGate.classList.add('is-flicker');
+    const activeFor = 150 + Math.random() * 150;
+    window.setTimeout(() => {
+      filmGate.classList.remove('is-flicker');
+      queueFilmGateFlicker();
+    }, activeFor);
+  }, nextDelay);
+}
+
+function setupFilmGateFlicker() {
+  window.clearTimeout(filmGateTimer);
+  if (!filmGate || reduceMotion) return;
+  queueFilmGateFlicker();
+}
+
+function setupHoverDust() {
+  if (reduceMotion) return;
+  document.querySelectorAll('.work-tile').forEach((tile) => {
+    const run = () => spawnDustMotes(tile);
+    tile.addEventListener('mouseenter', run);
+    tile.addEventListener('focusin', run);
+  });
+}
+
+function spawnDustMotes(tile) {
+  if (tile.querySelector('.dust-layer')) return;
+  const layer = document.createElement('span');
+  layer.className = 'dust-layer';
+  const count = 6 + Math.floor(Math.random() * 7);
+  for (let i = 0; i < count; i += 1) {
+    const mote = document.createElement('span');
+    mote.className = 'dust-mote';
+    mote.style.setProperty('--dust-x', `${Math.random() * 100}%`);
+    mote.style.setProperty('--dust-delay', `${(Math.random() * 220).toFixed(0)}ms`);
+    mote.style.setProperty('--dust-duration', `${2.4 + Math.random() * 1.5}s`);
+    layer.appendChild(mote);
+  }
+  tile.appendChild(layer);
+  const removeLayer = () => layer.remove();
+  window.setTimeout(removeLayer, 2300);
 }
 
 
@@ -669,5 +837,6 @@ setupCursor();
 setupAmbientSeed();
 setupAmbientDrift();
 setupFogRevealTracking();
+setupFilmGateFlicker();
 window.addEventListener('scroll', () => window.requestAnimationFrame(applyScrollDissolve), { passive: true });
 render();
