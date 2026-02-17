@@ -1,5 +1,45 @@
 window.WRITINGS_DATA = [
   {
+    slug: 'lull',
+    title: 'lull',
+    excerpt: 'lull. a poem.',
+    content: `Alcyonacea
+	
+Sway on a gray cradle
+
+Rocked by the ocean’s arms.
+
+
+Coral rocks sway soft
+
+Clownfish dance in cradle's arms
+
+Waves hum lullabies.
+
+
+Below, shadows drift
+
+A ballet of light and dark
+
+Secrets of the deep.
+
+
+Corals, they bloom
+
+Growing under ocean’s care
+
+Painting hidden worlds.
+
+
+Eternal rhythm,
+
+Ocean cradles ancient dreams
+
+Time flows, and it sleeps.
+
+`
+  },
+  {
     slug: 'the-ink-the-bottle-and-the-book',
     title: 'the ink, the bottle, and the book',
     excerpt: 'three objects.',
