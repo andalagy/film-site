@@ -190,19 +190,14 @@ function filmDetailPath(id) {
 function filmCard(film) {
   const cleanId = cleanVideoId(film.id);
   if (!cleanId) return '';
-  const details = `${film.year} · ${film.runtime} · ${film.role}`;
   const filmPath = filmDetailPath(cleanId);
-  return `<article class="film-card">
-      <a href="${toUrl(filmPath)}" data-link="${filmPath}" class="film-link" data-echo-target>
-        ${renderYouTubeThumbnail({ id: cleanId, alt: `${lower(film.title)} thumbnail` })}
-        <span class="memory-smear" aria-hidden="true"></span>
-        <span class="film-overlay">
-          <span>${lower(film.statement)}</span>
-          <small>${lower(details)}</small>
-        </span>
-      </a>
-      <h3 class="ghost-title" data-title="${lower(film.title)}"><a href="${toUrl(filmPath)}" data-link="${filmPath}" data-echo-target class="film-title-link">${lower(film.title)}</a></h3>
-    </article>`;
+  return workCard({
+    href: filmPath,
+    title: film.title,
+    description: film.statement,
+    mediaMarkup: renderYouTubeThumbnail({ id: cleanId, alt: `${lower(film.title)} thumbnail`, className: 'film-image' }),
+    cardClass: 'film-card'
+  });
 }
 
 window.APP_DATA = {
@@ -217,22 +212,31 @@ function writingDetailPath(slug) {
 function writingCard(item) {
   const writingPath = writingDetailPath(item.slug);
   const coverImage = String(item.coverImage || item.image || item.cover || '').trim();
-  return `<article class="writing-card">
-    <a href="${toUrl(writingPath)}" data-link="${writingPath}" class="writing-link" data-echo-target aria-label="${lower(item.title)}">
-      <div class="writing-media">
-        ${
-          coverImage
-            ? `<img class="writing-cover-image" src="${coverImage}" alt="${lower(item.title)} cover" loading="lazy" />`
-            : `<div class="writing-text-cover" aria-hidden="true">
-                <span class="writing-haze"></span>
-              </div>`
-        }
-        <span class="memory-smear" aria-hidden="true"></span><div class="writing-overlay">
-          <p>${lower(item.excerpt)}</p>
+  const mediaMarkup = coverImage
+    ? `<img class="writing-cover-image" src="${coverImage}" alt="${lower(item.title)} cover" loading="lazy" />`
+    : `<div class="writing-text-cover" aria-hidden="true"><span class="writing-haze"></span></div>`;
+
+  return workCard({
+    href: writingPath,
+    title: item.title,
+    description: item.excerpt,
+    mediaMarkup,
+    cardClass: 'writing-card'
+  });
+}
+
+function workCard({ href, title, description, mediaMarkup, cardClass = '' }) {
+  return `<article class="work-card ${cardClass}">
+    <a href="${toUrl(href)}" data-link="${href}" class="work-card-link" data-echo-target aria-label="${lower(title)}">
+      <div class="work-tile">
+        ${mediaMarkup}
+        <span class="memory-smear" aria-hidden="true"></span>
+        <div class="work-overlay">
+          <p>${lower(description || '')}</p>
         </div>
       </div>
+      <h3 class="work-title">${lower(title)}</h3>
     </a>
-    <h3 class="ghost-title writing-title" data-title="${lower(item.title)}"><a href="${toUrl(writingPath)}" data-link="${writingPath}" class="writing-title-link" data-echo-target>${lower(item.title)}</a></h3>
   </article>`;
 }
 
