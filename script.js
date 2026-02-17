@@ -86,7 +86,7 @@ function slateMetaMarkup() {
   return `<dl class="slate-meta" aria-label="slate metadata">${primaryFields
     .map(
       ([label, value]) =>
-        `<div class="slate-chip"><dt>${label}</dt><dd class="slate-meta-value" data-slate-value="${label}">${value}</dd></div>`
+        `<div class="slate-meta-item"><dt>${label}</dt><dd class="slate-meta-value" data-slate-value="${label}">${value}</dd></div>`
     )
     .join('')}</dl>`;
 }
@@ -197,29 +197,23 @@ function writingDetailPath(slug) {
 
 function writingCard(item) {
   const writingPath = writingDetailPath(item.slug);
-  const detailBits = [item.year, item.pages].filter(Boolean).map((bit) => lower(bit));
   const coverImage = String(item.coverImage || item.image || item.cover || '').trim();
   return `<article class="writing-card">
-    <a href="${toUrl(writingPath)}" data-link="${writingPath}" class="writing-link">
+    <a href="${toUrl(writingPath)}" data-link="${writingPath}" class="writing-link" aria-label="${lower(item.title)}">
       <div class="writing-media">
         ${
           coverImage
             ? `<img class="writing-cover-image" src="${coverImage}" alt="${lower(item.title)} cover" loading="lazy" />`
             : `<div class="writing-text-cover" aria-hidden="true">
                 <span class="writing-haze"></span>
-                <div class="writing-overlay">
-                  <h3 class="ghost-title" data-title="${lower(item.title)}">${lower(item.title)}</h3>
-                  <p>${lower(item.excerpt)}</p>
-                </div>
               </div>`
         }
-      </div>
-      <div class="writing-copy">
-        <h3 class="ghost-title" data-title="${lower(item.title)}">${lower(item.title)}</h3>
-        <p>${lower(item.excerpt)}</p>
-        ${detailBits.length ? `<small>${detailBits.join(' · ')}</small>` : ''}
+        <div class="writing-overlay">
+          <p>${lower(item.excerpt)}</p>
+        </div>
       </div>
     </a>
+    <h3 class="ghost-title writing-title" data-title="${lower(item.title)}"><a href="${toUrl(writingPath)}" data-link="${writingPath}" class="writing-title-link">${lower(item.title)}</a></h3>
   </article>`;
 }
 

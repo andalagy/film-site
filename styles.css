@@ -218,31 +218,33 @@ body.home-page main {
 .slate-meta {
   margin: 1.15rem 0 0;
   padding: 0;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, min-content));
-  justify-content: start;
-  gap: 0.45rem 0.7rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem 0.5rem;
   position: relative;
   z-index: 1;
 }
 
-.slate-chip {
+.slate-meta-item {
   margin: 0;
-  padding: 0.5rem 0.6rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.015));
-  backdrop-filter: blur(4px);
-  border-radius: 8px;
-  transition: border-color 0.25s ease, background-color 0.25s ease;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.18rem;
 }
 
-.slate-chip:hover,
-.slate-chip:focus-within {
-  border-color: rgba(255, 231, 198, 0.28);
-  background: linear-gradient(180deg, rgba(255, 244, 224, 0.07), rgba(255, 255, 255, 0.03));
+.slate-meta-item::after {
+  content: '·';
+  color: rgba(224, 223, 230, 0.38);
+  margin-left: 0.32rem;
 }
 
-.slate-chip dt {
+.slate-meta-item:last-child::after {
+  display: none;
+}
+
+.slate-meta-item dt {
+  display: inline;
   font-size: 0.68rem;
   letter-spacing: 0.09em;
   text-transform: lowercase;
@@ -250,10 +252,8 @@ body.home-page main {
   margin: 0;
 }
 
-.slate-chip dd {
-  margin: 0.2rem 0 0;
-  padding-top: 0.25rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+.slate-meta-item dd {
+  margin: 0;
   font-size: 0.9rem;
   color: rgba(244, 241, 235, 0.95);
   letter-spacing: 0.03em;
@@ -349,8 +349,7 @@ body.home-page main {
 }
 
 .writing-link {
-  display: grid;
-  gap: 0.7rem;
+  display: block;
   text-decoration: none;
 }
 
@@ -397,13 +396,23 @@ body.home-page main {
   position: absolute;
   inset: 0;
   display: flex;
-  flex-direction: column;
   justify-content: flex-end;
-  gap: 0.45rem;
   padding: 0.95rem;
-  background: linear-gradient(180deg, rgba(11, 11, 13, 0), rgba(10, 10, 13, 0.86));
+  background: linear-gradient(180deg, rgba(11, 11, 13, 0.08), rgba(10, 10, 13, 0.82));
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
+
+.writing-overlay p {
+  margin: 0;
+  color: rgba(241, 238, 231, 0.92);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 
 .writing-media::after {
   content: "";
@@ -421,33 +430,43 @@ body.home-page main {
 }
 
 .writing-link:hover .writing-media::after,
-.writing-link:focus-visible .writing-media::after {
+.writing-link:focus-visible .writing-media::after,
+.writing-link:focus .writing-media::after {
   opacity: 0.62;
 }
 
-.writing-copy h3,
+.writing-link:hover .writing-overlay,
+.writing-link:focus-visible .writing-overlay,
+.writing-link:focus .writing-overlay {
+  opacity: 1;
+}
+
+.writing-title {
+  margin: 0.7rem 0 0;
+}
+
+.writing-title-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.writing-title-link:hover,
+.writing-title-link:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.writing-title-link:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.78);
+  outline-offset: 3px;
+}
+
+.writing-title,
 .writing-overlay h3 {
   margin: 0;
   font-weight: 400;
   letter-spacing: 0.015em;
 }
-
-.writing-copy p,
-.writing-overlay p {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.writing-copy p {
-  -webkit-line-clamp: 3;
-}
-
-.writing-copy small { color: var(--muted); opacity: 0.78; display: block; margin-top: 0.4rem; }
 
 .film-link::before {
   content: '';
@@ -643,11 +662,14 @@ body.slate-flash::after {
   body.home-page main { padding-top: 2.8rem; }
   .film-grid,
   .writing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .slate-meta { grid-template-columns: repeat(2, minmax(0, min-content)); }
 }
 
 @media (max-width: 640px) {
   .film-grid,
-  .writing-grid,
-  .slate-meta { grid-template-columns: 1fr; }
+  .writing-grid { grid-template-columns: 1fr; }
+  .slate-meta {
+    display: grid;
+    gap: 0.25rem;
+  }
+  .slate-meta-item::after { display: none; }
 }
