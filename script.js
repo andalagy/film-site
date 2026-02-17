@@ -6,9 +6,17 @@ const EMBED_LOAD_TIMEOUT_MS = 3200;
 
 const app = document.querySelector('#app');
 const cursor = document.querySelector('.cursor');
+const ambientLeak = document.querySelector('.ambient-leak');
 const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 let homeExpanded = false;
+let ambientRaf = 0;
+const ambientMotion = {
+  tx: window.innerWidth * 0.5,
+  ty: window.innerHeight * 0.4,
+  x: window.innerWidth * 0.5,
+  y: window.innerHeight * 0.4
+};
 
 function normalize(path) {
   return path.replace(/\/+$/, '') || '/';
@@ -70,15 +78,18 @@ function thumbCandidates(id) {
 
 function filmCard(film) {
   const details = `${film.year} · ${film.runtime} · ${film.role}`;
-  return `<article class="film-card">
-      <a href="${toUrl(`/films/${encodeURIComponent(film.id)}`)}" data-link="/films/${encodeURIComponent(film.id)}" class="film-link">
+  const preview = thumbCandidates(film.id)[1] || thumbCandidates(film.id)[0];
+  const offsetX = Math.round(((film.title.length % 5) - 2) * 1.3);
+  const offsetY = Math.round(((film.year || 0) % 3) - 1);
+  return `<article class="film-card" style="--card-shift-x:${offsetX}px;--card-shift-y:${offsetY}px">
+      <a href="${toUrl(`/films/${encodeURIComponent(film.id)}`)}" data-link="/films/${encodeURIComponent(film.id)}" class="film-link" data-preview="${preview}">
         <img src="${thumbCandidates(film.id)[0]}" alt="${lower(film.title)} thumbnail" data-thumbs="${thumbCandidates(film.id).join('|')}" data-thumb-index="0" loading="lazy" />
         <span class="film-overlay">
           <span>${lower(film.statement)}</span>
           <small>${lower(details)}</small>
         </span>
       </a>
-      <h3>${lower(film.title)}</h3>
+      <h3 data-title="${lower(film.title)}">${lower(film.title)}</h3>
     </article>`;
 }
 
@@ -163,14 +174,15 @@ function filmFallbackView(film, reason) {
 
 function writingsView() {
   const quote = WRITINGS[0]?.excerpt || '';
-  return `<section class="page-section writings">
+  return `<section class="page-section writings" data-ambient-shift>
     <h1>writings</h1>
     <p class="pull-quote" data-pull-quote>${lower(quote)}</p>
     <div class="writing-list">
       ${WRITINGS.map(
-        (item) => `<article class="writing-item" data-excerpt="${lower(item.excerpt)}">
+        (item, index) => `<article class="writing-item" data-excerpt="${lower(item.excerpt)}" data-mood="${['amber', 'lilac', 'blue'][index % 3]}">
           <h2>${lower(item.title)}</h2>
           <p>${lower(item.excerpt)}</p>
+          <span class="mood-tag">mood ${index + 1}</span>
           <a href="${toUrl(`/writings/${encodeURIComponent(item.slug)}`)}" data-link="/writings/${encodeURIComponent(item.slug)}">read</a>
         </article>`
       ).join('')}
@@ -229,6 +241,8 @@ function updateActiveNav(page) {
 }
 
 function bindDynamicInteractions() {
+  applyScrollDissolve();
+
   document.querySelectorAll('img[data-thumbs]').forEach((img) => {
     img.addEventListener('error', () => {
       const list = (img.dataset.thumbs || '').split('|').filter(Boolean);
@@ -246,10 +260,12 @@ function bindDynamicInteractions() {
     slate?.classList.remove('clap');
     void slate?.offsetWidth;
     slate?.classList.add('clap');
+    document.body.classList.add('slate-flash');
+    window.setTimeout(() => document.body.classList.remove('slate-flash'), reduceMotion ? 0 : 420);
     window.setTimeout(() => {
       const filmsSection = document.querySelector('#films');
       filmsSection?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
-    }, reduceMotion ? 0 : 180);
+    }, reduceMotion ? 0 : 420);
   });
 
   const toggle = document.querySelector('[data-toggle-home]');
@@ -264,14 +280,40 @@ function bindDynamicInteractions() {
   if (quote) {
     document.querySelectorAll('.writing-item').forEach((item) => {
       item.addEventListener('mouseenter', () => {
+        updateAmbientMood(item.dataset.mood || 'amber');
         quote.style.opacity = '0';
         window.setTimeout(() => {
           quote.textContent = item.dataset.excerpt || '';
           quote.style.opacity = '1';
         }, reduceMotion ? 0 : 140);
       });
+
+      item.addEventListener('mouseleave', () => {
+        updateAmbientMood('');
+      });
     });
   }
+
+  document.querySelectorAll('.film-link').forEach((link) => {
+    const preview = link.dataset.preview;
+    if (preview) {
+      link.style.setProperty('--preview-image', `url("${preview}")`);
+      link.style.backgroundImage = `var(--preview-image)`;
+      link.style.backgroundSize = 'cover';
+      link.style.backgroundPosition = 'center';
+    }
+
+    let sharpenTimer = 0;
+    link.addEventListener('mouseenter', () => {
+      sharpenTimer = window.setTimeout(() => {
+        link.classList.add('hover-settled');
+      }, reduceMotion ? 0 : 150);
+    });
+    link.addEventListener('mouseleave', () => {
+      window.clearTimeout(sharpenTimer);
+      link.classList.remove('hover-settled');
+    });
+  });
 
   setupFilmEmbedFallback();
 }
@@ -389,6 +431,60 @@ function setupCursor() {
   });
 }
 
+function setupAmbientDrift() {
+  if (reduceMotion || isTouchDevice || !ambientLeak) return;
+
+  window.addEventListener('mousemove', (event) => {
+    ambientMotion.tx = event.clientX;
+    ambientMotion.ty = event.clientY;
+  });
+
+  const loop = () => {
+    ambientMotion.x += (ambientMotion.tx - ambientMotion.x) * 0.045;
+    ambientMotion.y += (ambientMotion.ty - ambientMotion.y) * 0.045;
+    const nx = ambientMotion.x / window.innerWidth;
+    const ny = ambientMotion.y / window.innerHeight;
+    document.documentElement.style.setProperty('--leak-x', `${(nx * 100).toFixed(2)}vw`);
+    document.documentElement.style.setProperty('--leak-y', `${(ny * 100).toFixed(2)}vh`);
+    document.documentElement.style.setProperty('--float-x', `${((nx - 0.5) * 8).toFixed(2)}px`);
+    document.documentElement.style.setProperty('--float-y', `${((ny - 0.5) * 10).toFixed(2)}px`);
+    ambientRaf = window.requestAnimationFrame(loop);
+  };
+
+  if (!ambientRaf) ambientRaf = window.requestAnimationFrame(loop);
+}
+
+function applyScrollDissolve() {
+  if (reduceMotion) return;
+  const sections = document.querySelectorAll('.slate-wrap, .home-films, .about, .page-section');
+  if (!sections.length) return;
+  const viewportCenter = window.innerHeight * 0.5;
+  sections.forEach((section) => {
+    const rect = section.getBoundingClientRect();
+    const center = rect.top + rect.height * 0.5;
+    const distance = Math.min(1, Math.abs(viewportCenter - center) / window.innerHeight);
+    section.style.setProperty('--section-dissolve', distance.toFixed(2));
+  });
+}
+
+function updateAmbientMood(mood) {
+  if (!ambientLeak) return;
+  if (mood === 'lilac') {
+    document.documentElement.style.setProperty('--leak-opacity', '0.34');
+    document.documentElement.style.setProperty('--fog-blur', '54px');
+    return;
+  }
+  if (mood === 'blue') {
+    document.documentElement.style.setProperty('--leak-opacity', '0.26');
+    document.documentElement.style.setProperty('--fog-blur', '62px');
+    return;
+  }
+  document.documentElement.style.setProperty('--leak-opacity', mood ? '0.3' : '0.28');
+  document.documentElement.style.setProperty('--fog-blur', '46px');
+}
+
 setupNavigation();
 setupCursor();
+setupAmbientDrift();
+window.addEventListener('scroll', () => window.requestAnimationFrame(applyScrollDissolve), { passive: true });
 render();
