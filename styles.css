@@ -240,6 +240,30 @@ body.home-page main {
 .quiet-btn { margin-top: 1rem; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.01); padding: 0.65rem 1rem; }
 .quiet-btn:hover, .quiet-btn:focus-visible { background: rgba(255, 255, 255, 0.08); }
 
+.section-cta {
+  margin-top: 1.4rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  text-decoration: none;
+  text-underline-offset: 0.2em;
+}
+
+.section-cta:hover {
+  color: var(--text);
+  background: transparent;
+  text-decoration: underline;
+}
+
+.section-cta:focus-visible {
+  color: var(--text);
+  background: transparent;
+  text-decoration: underline;
+  outline: 1px solid rgba(255, 255, 255, 0.75);
+  outline-offset: 3px;
+}
+
 .home-films, .home-writings, .about, .page-section {
   position: relative;
   margin-top: 4.4rem;
@@ -295,24 +319,47 @@ body.home-page main {
 }
 
 .writing-link {
-  position: relative;
-  display: block;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  min-height: 190px;
-  background:
-    linear-gradient(180deg, rgba(18, 19, 23, 0.72), rgba(10, 10, 13, 0.94)),
-    radial-gradient(circle at 15% 20%, rgba(255, 211, 168, 0.13), transparent 50%),
-    radial-gradient(circle at 85% 80%, rgba(170, 181, 255, 0.14), transparent 55%);
-  transition: transform 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease;
+  display: grid;
+  gap: 0.7rem;
+  text-decoration: none;
 }
 
 .writing-link:hover,
 .writing-link:focus-visible {
   transform: translateY(-2px);
-  border-color: rgba(255, 224, 196, 0.38);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+.writing-media {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  background: linear-gradient(180deg, rgba(14, 15, 19, 0.72), rgba(10, 10, 13, 0.92));
+}
+
+.writing-cover-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: brightness(0.9);
+}
+
+.writing-text-cover {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(255, 211, 168, 0.22), transparent 50%),
+    radial-gradient(circle at 84% 76%, rgba(170, 181, 255, 0.2), transparent 55%),
+    linear-gradient(180deg, rgba(18, 19, 23, 0.75), rgba(10, 10, 13, 0.95));
+}
+
+.writing-haze {
+  position: absolute;
+  inset: -16%;
+  background: radial-gradient(circle at 52% 48%, rgba(255, 255, 255, 0.08), transparent 56%);
+  filter: blur(18px);
 }
 
 .writing-overlay {
@@ -323,15 +370,17 @@ body.home-page main {
   justify-content: flex-end;
   gap: 0.45rem;
   padding: 0.95rem;
-  background: linear-gradient(180deg, rgba(12, 12, 14, 0.08), rgba(10, 10, 12, 0.82));
+  background: linear-gradient(180deg, rgba(11, 11, 13, 0), rgba(10, 10, 13, 0.86));
 }
 
+.writing-copy h3,
 .writing-overlay h3 {
   margin: 0;
   font-weight: 400;
   letter-spacing: 0.015em;
 }
 
+.writing-copy p,
 .writing-overlay p {
   margin: 0;
   color: var(--muted);
@@ -342,7 +391,11 @@ body.home-page main {
   overflow: hidden;
 }
 
-.writing-overlay small { color: var(--muted); opacity: 0.78; }
+.writing-copy p {
+  -webkit-line-clamp: 3;
+}
+
+.writing-copy small { color: var(--muted); opacity: 0.78; display: block; margin-top: 0.4rem; }
 
 .film-link::before {
   content: '';
