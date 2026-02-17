@@ -70,6 +70,7 @@ let fogRaf = 0;
 let routeTransitionToken = 0;
 let headingBreathObserver = null;
 let memorySubtitleObserver = null;
+let slateMiniObserver = null;
 let memorySubtitleFadeTimeout = 0;
 let activeMemoryLine = '';
 let filmGateTimer = 0;
@@ -154,18 +155,20 @@ function advanceSlateTake() {
 }
 
 function animateSlateValue(label) {
-  const valueNode = document.querySelector(`[data-slate-value="${label}"]`);
-  if (!valueNode) return;
-  valueNode.classList.remove('is-updating');
-  void valueNode.offsetWidth;
-  valueNode.classList.add('is-updating');
+  const valueNodes = document.querySelectorAll(`[data-slate-value="${label}"]`);
+  valueNodes.forEach((valueNode) => {
+    valueNode.classList.remove('is-updating');
+    void valueNode.offsetWidth;
+    valueNode.classList.add('is-updating');
+  });
 }
 
 function syncSlateMetaUI() {
   const values = currentSlateValues();
   Object.entries(values).forEach(([label, value]) => {
-    const valueNode = document.querySelector(`[data-slate-value="${label}"]`);
-    if (valueNode) valueNode.textContent = value;
+    document.querySelectorAll(`[data-slate-value="${label}"]`).forEach((valueNode) => {
+      valueNode.textContent = value;
+    });
   });
 }
 
@@ -267,16 +270,14 @@ function writingCard(item, index = 0) {
 }
 
 function workCard({ href, title, description, mediaMarkup, cardClass = '' }) {
+  const subtitle = lower(description || '').trim();
   return `<article class="work-card ${cardClass}">
     <a href="${toUrl(href)}" data-link="${href}" class="work-card-link" data-echo-target aria-label="${lower(title)}">
       <div class="work-tile">
         ${mediaMarkup}
-        <span class="memory-smear" aria-hidden="true"></span>
-        <div class="work-overlay">
-          <p>${lower(description || '')}</p>
-        </div>
       </div>
       <h3 class="work-title">${lower(title)}</h3>
+      ${subtitle ? `<p class="work-subtitle">${subtitle}</p>` : ''}
     </a>
   </article>`;
 }
@@ -307,6 +308,10 @@ function homeView() {
         ${slateMetaMarkup()}
       </article>
     </section>
+    <article class="slate-mini" data-slate-mini hidden aria-hidden="true">
+      <p class="slate-mini-title">andrew yan</p>
+      ${slateMetaMarkup()}
+    </article>
     <section id="films" class="home-films">
       <div class="heading-row">
         <h2 data-breath-heading>films</h2>
@@ -417,15 +422,48 @@ function clapSlateAndAdvanceMeta() {
 function handleSlateInteract() {
   clapSlateAndAdvanceMeta();
 
-  const proceed = () => scrollToAnchorId('films');
+  const proceed = () => window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
   if (routeFromLocation().page === 'home') {
     window.setTimeout(proceed, reduceMotion ? 0 : 420);
     return;
   }
 
-  history.pushState({}, '', toUrl('/', '#films'));
+  history.pushState({}, '', toUrl('/'));
   render();
   window.setTimeout(proceed, reduceMotion ? 0 : 420);
+}
+
+function setupPersistentSlate() {
+  if (slateMiniObserver) {
+    slateMiniObserver.disconnect();
+    slateMiniObserver = null;
+  }
+
+  const heroSlate = document.querySelector('[data-slate]');
+  const miniSlate = document.querySelector('[data-slate-mini]');
+  if (!heroSlate || !miniSlate || routeFromLocation().page !== 'home') return;
+
+  miniSlate.addEventListener('click', handleSlateInteract);
+
+  const updateMiniSlate = (showMini) => {
+    miniSlate.hidden = !showMini;
+    miniSlate.setAttribute('aria-hidden', showMini ? 'false' : 'true');
+    miniSlate.classList.toggle('is-visible', showMini);
+  };
+
+  if (window.matchMedia('(max-width: 640px)').matches) {
+    updateMiniSlate(false);
+    return;
+  }
+
+  slateMiniObserver = new IntersectionObserver(
+    ([entry]) => {
+      updateMiniSlate(!entry.isIntersecting);
+    },
+    { threshold: 0.25 }
+  );
+
+  slateMiniObserver.observe(heroSlate);
 }
 
 function updateActiveNav(page) {
@@ -457,6 +495,7 @@ function bindDynamicInteractions() {
   setupHeadingBreath();
   setupMemorySubtitle();
   setupHoverDust();
+  setupPersistentSlate();
 
   setupFilmEmbedFallback();
 }
