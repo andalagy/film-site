@@ -77,6 +77,13 @@ function thumbCandidates(id) {
   );
 }
 
+function renderYouTubeThumbnail({ id, alt, className = '', loading = 'lazy' }) {
+  const safeId = String(id || '').trim();
+  const thumbs = thumbCandidates(safeId);
+  const classes = className ? ` class="${className}"` : '';
+  return `<img${classes} src="" alt="${alt}" loading="${loading}" data-youtube-thumb="1" data-youtube-id="${safeId}" data-thumbs="${thumbs.join('|')}" data-thumb-index="0" data-thumb-key="${safeId}-0" />`;
+}
+
 function filmDetailPath(id) {
   return `/films/${encodeURIComponent(id)}`;
 }
@@ -90,7 +97,7 @@ function filmCard(film) {
   const offsetY = Math.round(((film.year || 0) % 3) - 1);
   return `<article class="film-card" style="--card-shift-x:${offsetX}px;--card-shift-y:${offsetY}px">
       <a href="${toUrl(filmPath)}" data-link="${filmPath}" class="film-link" data-preview="${preview}">
-        <img src="${thumbs[0]}" alt="${lower(film.title)} thumbnail" data-thumbs="${thumbs.join('|')}" data-thumb-index="0" loading="lazy" />
+        ${renderYouTubeThumbnail({ id: film.id, alt: `${lower(film.title)} thumbnail` })}
         <span class="film-overlay">
           <span>${lower(film.statement)}</span>
           <small>${lower(details)}</small>
@@ -186,10 +193,10 @@ function filmDetailView(id) {
 }
 
 function filmFallbackView(film, reason) {
-  const thumb = thumbCandidates(film.id)[0];
+  const thumb = renderYouTubeThumbnail({ id: film.id, alt: `${lower(film.title)} thumbnail` });
   const safeReason = lower(reason || 'embed failed');
   return `<div class="film-fallback" data-film-fallback data-reason="${safeReason}">
-    <img src="${thumb}" alt="${lower(film.title)} thumbnail" loading="lazy" />
+    ${thumb}
     <div class="film-fallback-copy">
       <p>this video can’t be embedded. watch on youtube.</p>
       <a class="quiet-btn" target="_blank" rel="noopener noreferrer" href="${buildWatchUrl(film.id)}">watch on youtube</a>
@@ -279,20 +286,7 @@ function updateActiveNav(page) {
 
 function bindDynamicInteractions() {
   applyScrollDissolve();
-
-  document.querySelectorAll('img[data-thumbs]').forEach((img) => {
-    img.addEventListener('error', () => {
-      const list = (img.dataset.thumbs || '').split('|').filter(Boolean);
-      const index = Number(img.dataset.thumbIndex || 0);
-      const next = index + 1;
-      if (!list[next]) {
-        img.removeAttribute('data-thumbs');
-        return;
-      }
-      img.dataset.thumbIndex = String(next);
-      img.src = list[next];
-    });
-  });
+  initYouTubeThumbnailFallbacks();
 
   const slateButton = document.querySelector('[data-slate-action]');
   slateButton?.addEventListener('click', () => {
@@ -344,6 +338,49 @@ function bindDynamicInteractions() {
   });
 
   setupFilmEmbedFallback();
+}
+
+function initYouTubeThumbnailFallbacks() {
+  document.querySelectorAll('img[data-youtube-thumb="1"]').forEach((img) => {
+    const id = String(img.dataset.youtubeId || '').trim();
+    const list = thumbCandidates(id);
+    if (!list.length) return;
+
+    const currentId = img.dataset.activeYoutubeId || '';
+    if (currentId !== id) {
+      img.dataset.activeYoutubeId = id;
+      img.dataset.thumbIndex = '0';
+      img.dataset.thumbKey = `${id}-0`;
+      img.dataset.thumbs = list.join('|');
+      img.removeAttribute('src');
+      img.dataset.thumbResolved = '0';
+    }
+
+    if (img.dataset.thumbResolved === '1') return;
+
+    const tryThumb = (index) => {
+      const activeList = (img.dataset.thumbs || '').split('|').filter(Boolean);
+      const candidate = activeList[index];
+      if (!candidate) {
+        img.dataset.thumbResolved = '1';
+        return;
+      }
+
+      const probe = new Image();
+      probe.onload = () => {
+        img.dataset.thumbIndex = String(index);
+        img.dataset.thumbKey = `${id}-${index}`;
+        img.src = candidate;
+        img.dataset.thumbResolved = '1';
+      };
+      probe.onerror = () => {
+        tryThumb(index + 1);
+      };
+      probe.src = candidate;
+    };
+
+    tryThumb(Number(img.dataset.thumbIndex || 0));
+  });
 }
 
 function setupWritingSelection() {
