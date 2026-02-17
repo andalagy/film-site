@@ -1,39 +1,50 @@
 window.FILMS_DATA = [
   {
     id: '4uJzOTmVHKQ',
-    title: 'northern mockingbird.',
-    role: 'Director',
-    statement: 'finding the bird.',
+    title: 'northern mockingbird',
+    role: 'director',
+    statement: 'finding the bird in a place that no longer remembers it.',
     year: 2025,
-    runtime: '3 min',
-    videoUrl: 'https://www.youtube-nocookie.com/embed/4uJzOTmVHKQ'
+    runtime: '3 min'
   },
   {
     id: 'qaAV4v811j8',
-    title: 'the man who waters concrete.',
-    role: 'Director',
-    statement:
-      'An attempt to grow the concrete. The ending is extremely cornball, where a desperate attempt was made to save the film from bad planning.',
+    title: 'the man who waters concrete',
+    role: 'director',
+    statement: 'an attempt to grow what cannot grow.',
     year: 2025,
-    runtime: '2 min',
-    videoUrl: 'https://www.youtube-nocookie.com/embed/qaAV4v811j8'
+    runtime: '2 min'
   },
   {
     id: '-vp76Gp6zoI',
-    title: 'Bohemian Rhapsody',
-    role: 'Director',
-    statement: 'A music video to portray the story behind the widely acclaimed song.',
+    title: 'bohemian rhapsody',
+    role: 'director',
+    statement: 'a music piece shaped as memory.',
     year: 2025,
-    runtime: '15 min',
-    videoUrl: 'https://www.youtube-nocookie.com/embed/-vp76Gp6zoI'
+    runtime: '15 min'
   },
   {
     id: '9pLS3b_b_oM',
-    title: 'Echoes of Tommorow',
-    role: 'Editor',
-    statement: 'Or maybe in the future of stock footages.',
+    title: 'echoes of tomorrow',
+    role: 'editor',
+    statement: 'stock footage and near futures.',
     year: 2024,
-    runtime: '3 min',
-    videoUrl: 'https://www.youtube-nocookie.com/embed/9pLS3b_b_oM'
+    runtime: '3 min'
+  },
+  {
+    id: 'M7lc1UVf-VE',
+    title: 'still water room',
+    role: 'writer / director',
+    statement: 'a quiet room, a long pause, a decision that does not arrive.',
+    year: 2023,
+    runtime: '7 min'
+  },
+  {
+    id: 'ysz5S6PUM-U',
+    title: 'soft return',
+    role: 'director',
+    statement: 'home appears in fragments before it appears as fact.',
+    year: 2022,
+    runtime: '6 min'
   }
 ];

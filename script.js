@@ -1,737 +1,291 @@
-const films = Array.isArray(window.FILMS_DATA) ? window.FILMS_DATA : [];
 const APP_BASE_PATH = '/andalagy';
+const FILMS = Array.isArray(window.FILMS_DATA) ? window.FILMS_DATA : [];
+const WRITINGS = Array.isArray(window.WRITINGS_DATA) ? window.WRITINGS_DATA : [];
 
-const appRouteState = {
-  previousFocus: null,
-  activeFilmId: null
-};
+const app = document.querySelector('#app');
+const cursor = document.querySelector('.cursor');
+const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let homeExpanded = false;
 
-const filmRuntimeState = {
-  films: []
-};
-
-const PAGE_TITLES = {
-  home: 'Andrew Yan — Film',
-  films: 'Andrew Yan — Films',
-  about: 'Andrew Yan — About'
-};
-
-function logMissingElement(name) {
-  console.error(`[film-site] Required element missing: ${name}. Feature initialization was skipped safely.`);
-}
-
-function trimTrailingSlash(path) {
+function normalize(path) {
   return path.replace(/\/+$/, '') || '/';
 }
 
-function stripBasePath(pathname = window.location.pathname) {
-  const normalizedPath = trimTrailingSlash(pathname);
-  const normalizedBase = trimTrailingSlash(APP_BASE_PATH);
-
-  if (normalizedBase === '/') return normalizedPath;
-  if (normalizedPath === normalizedBase) return '/';
-  if (normalizedPath.startsWith(`${normalizedBase}/`)) {
-    return normalizedPath.slice(normalizedBase.length) || '/';
-  }
-
-  return normalizedPath;
+function stripBase(pathname = window.location.pathname) {
+  const base = normalize(APP_BASE_PATH);
+  const path = normalize(pathname);
+  if (path === base) return '/';
+  if (path.startsWith(`${base}/`)) return path.slice(base.length) || '/';
+  return path;
 }
 
-function toAppUrl(routePath = '/', hash = '') {
-  const normalizedRoute = routePath.startsWith('/') ? routePath : `/${routePath}`;
-  const routeUrl = normalizedRoute === '/' ? `${APP_BASE_PATH}/` : `${APP_BASE_PATH}${normalizedRoute}`;
-  return hash ? `${routeUrl}${hash.startsWith('#') ? hash : `#${hash}`}` : routeUrl;
+function toUrl(path = '/', hash = '') {
+  const fullPath = path === '/' ? `${APP_BASE_PATH}/` : `${APP_BASE_PATH}${path}`;
+  return `${fullPath}${hash}`;
 }
 
-function navigateToRoute(routePath, { state = {}, hash = '', replace = false } = {}) {
-  const targetUrl = toAppUrl(routePath, hash);
-  if (`${window.location.pathname}${window.location.search}${window.location.hash}` === targetUrl) return;
-  const historyMethod = replace ? 'replaceState' : 'pushState';
-  history[historyMethod](state, '', targetUrl);
+function routeFromLocation() {
+  const path = stripBase();
+  if (path === '/') return { page: 'home' };
+  if (path === '/films') return { page: 'films' };
+  if (path.startsWith('/films/')) return { page: 'film', id: decodeURIComponent(path.split('/')[2] || '') };
+  if (path === '/writings') return { page: 'writings' };
+  if (path.startsWith('/writings/')) return { page: 'writing', slug: decodeURIComponent(path.split('/')[2] || '') };
+  return { page: 'home' };
 }
 
-function getAppRoute(pathname = window.location.pathname) {
-  const normalizedPath = stripBasePath(pathname);
-
-  if (normalizedPath === '/') return { page: 'home', filmId: null };
-  if (normalizedPath === '/films') return { page: 'films', filmId: null };
-  if (normalizedPath === '/about' || normalizedPath === '/contact') return { page: 'about', filmId: null };
-
-  const detailMatch = normalizedPath.match(/^\/films\/([^/]+)$/);
-  if (detailMatch) {
-    return {
-      page: 'films',
-      filmId: decodeURIComponent(detailMatch[1])
-    };
-  }
-
-  return { page: 'home', filmId: null };
+function lower(text) {
+  return String(text || '').toLowerCase();
 }
 
-function applyRouteLayout(route = getAppRoute()) {
-  if (stripBasePath() === '/contact') {
-    navigateToRoute('/about', { replace: true, hash: window.location.hash });
-  }
-
-  document.title = PAGE_TITLES[route.page] || PAGE_TITLES.home;
-
-  document.body.dataset.page = route.page;
-  document.querySelectorAll('[data-route-pane]').forEach((pane) => {
-    const paneRoute = pane.getAttribute('data-route-pane');
-    const shouldShow = paneRoute === route.page;
-    pane.hidden = !shouldShow;
-  });
-
-  document.querySelectorAll('[data-route-link]').forEach((link) => {
-    const linkRoute = link.getAttribute('data-route-link');
-    const isActive = linkRoute === route.page;
-    link.classList.toggle('is-active', isActive);
-    link.setAttribute('aria-current', isActive ? 'page' : 'false');
-  });
-}
-
-function renderSharedAboutContent() {
-  const template = document.querySelector('#about-content-template');
-  if (!(template instanceof HTMLTemplateElement)) {
-    logMissingElement('#about-content-template');
-    return;
-  }
-
-  document.querySelectorAll('[data-about-content-slot]').forEach((slot) => {
-    if (!(slot instanceof HTMLElement)) return;
-    slot.replaceChildren(template.content.cloneNode(true));
-  });
-}
-
-function scrollToSectionByHash(hashValue = window.location.hash) {
-  if (!hashValue) return;
-
-  const target = document.querySelector(hashValue);
-  if (!(target instanceof HTMLElement) || target.hidden) return;
-
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  target.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' });
-}
-
-function initializeGlobalCursorLock(customConfig = {}) {
-  const config = {
-    debug: false,
-    restoreKey: 'Escape',
-    allowRestoreToggle: true,
-    enforceIntervalMs: 1200,
-    ...customConfig
-  };
-
-  const root = document.documentElement;
-  const trackedSelector = [
-    'a',
-    'button',
-    'input',
-    'textarea',
-    'select',
-    'summary',
-    'label',
-    'iframe',
-    '[role="button"]',
-    '[style*="cursor"]'
-  ].join(',');
-
-  let observer = null;
-  let auditTimer = null;
-
-  const debugLog = (...args) => {
-    if (config.debug) {
-      console.info('[cursor-lock]', ...args);
-    }
-  };
-
-  const forceNoneOnElement = (element) => {
-    if (!(element instanceof HTMLElement) && !(element instanceof SVGElement)) {
-      return;
-    }
-
-    element.style.setProperty('cursor', 'none', 'important');
-    element.querySelectorAll?.('*').forEach((child) => {
-      child.style.setProperty('cursor', 'none', 'important');
-    });
-  };
-
-  const lockCursor = () => {
-    root.classList.remove('cursor-restored');
-    root.classList.add('cursor-hidden');
-
-    document.body?.style.setProperty('cursor', 'none', 'important');
-    document.documentElement.style.setProperty('cursor', 'none', 'important');
-
-    document.querySelectorAll(trackedSelector).forEach(forceNoneOnElement);
-
-    const cursorNode = document.querySelector('.cursor');
-    if (cursorNode instanceof HTMLElement) {
-      cursorNode.hidden = false;
-    }
-
-    debugLog('Cursor hidden globally.');
-  };
-
-  const restoreCursor = () => {
-    root.classList.remove('cursor-hidden');
-    root.classList.add('cursor-restored');
-    document.body?.style.removeProperty('cursor');
-    document.documentElement.style.removeProperty('cursor');
-
-    const cursorNode = document.querySelector('.cursor');
-    if (cursorNode instanceof HTMLElement) {
-      cursorNode.hidden = true;
-    }
-
-    debugLog('Cursor restored to browser default.');
-  };
-
-  const browserSupportsCursorNone =
-    typeof CSS !== 'undefined' && typeof CSS.supports === 'function' && CSS.supports('cursor', 'none');
-
-  if (!browserSupportsCursorNone) {
-    root.classList.remove('cursor-hidden');
-    root.classList.add('cursor-restored');
-    console.warn('[cursor-lock] Browser does not support `cursor: none`; using default cursor fallback.');
-    return { active: false, reason: 'unsupported-browser' };
-  }
-
-  lockCursor();
-
-  window.setTimeout(() => {
-    const cursorValue = window.getComputedStyle(document.body).cursor;
-    if (cursorValue !== 'none' && !cursorValue.includes('none')) {
-      console.warn('[cursor-lock] Could not enforce hidden cursor reliably; reverting to default cursor fallback.');
-      restoreCursor();
-    }
-  }, 120);
-
-  const enforceIfLocked = (target = null) => {
-    if (!root.classList.contains('cursor-hidden')) return;
-
-    if (target instanceof HTMLElement || target instanceof SVGElement) {
-      forceNoneOnElement(target);
-      return;
-    }
-
-    lockCursor();
-  };
-
-  observer = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      if (mutation.type === 'childList') {
-        mutation.addedNodes.forEach((node) => {
-          enforceIfLocked(node);
-        });
-      }
-
-      if (mutation.type === 'attributes' && mutation.target) {
-        enforceIfLocked(mutation.target);
-      }
-    }
-  });
-
-  observer.observe(document.documentElement, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ['style', 'class']
-  });
-
-  ['pointerover', 'mousemove', 'mouseenter', 'focusin'].forEach((eventName) => {
-    document.addEventListener(
-      eventName,
-      (event) => {
-        enforceIfLocked(event.target);
-      },
-      true
-    );
-  });
-
-  auditTimer = window.setInterval(() => {
-    if (!root.classList.contains('cursor-hidden')) return;
-    document.querySelectorAll(trackedSelector).forEach(forceNoneOnElement);
-    debugLog('Periodic cursor lock audit applied.');
-  }, config.enforceIntervalMs);
-
-  if (config.allowRestoreToggle) {
-    document.addEventListener('keydown', (event) => {
-      if (event.key !== config.restoreKey) return;
-
-      if (root.classList.contains('cursor-hidden')) {
-        restoreCursor();
-      } else {
-        lockCursor();
-      }
-    });
-  }
-
-  return {
-    active: true,
-    destroy() {
-      observer?.disconnect();
-      observer = null;
-      if (auditTimer) {
-        window.clearInterval(auditTimer);
-        auditTimer = null;
-      }
-      restoreCursor();
-    }
-  };
-}
-
-function assertYouTubeId(id) {
-  return typeof id === 'string' && /^[A-Za-z0-9_-]{11}$/.test(id);
-}
-
-function getDeterministicThumbnailFallbacks(videoId) {
-  if (!assertYouTubeId(videoId)) return [];
-
-  return [
-    `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg`,
-    `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/mqdefault.jpg`,
-    `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/default.jpg`
-  ];
-}
-
-function buildEmbedSrc(videoId) {
-  if (!assertYouTubeId(videoId)) return null;
-  return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}`;
-}
-
-function parseVideoIdFromUrl(url) {
-  const parsedId = window.YouTubeUtils?.extractYouTubeVideoId(url) || null;
-  return assertYouTubeId(parsedId) ? parsedId : null;
-}
-
-function escapeHtml(text) {
-  return String(text)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
-
-function normalizeFilmData(rawFilms) {
-  return rawFilms.map((film) => {
-    const normalizedId = assertYouTubeId(film.id) ? film.id : parseVideoIdFromUrl(film.videoUrl || '');
-    const yearLabel = Number.isInteger(film.year) ? String(film.year) : null;
-    const runtimeLabel = typeof film.runtime === 'string' && film.runtime.trim() ? film.runtime.trim() : null;
-    const roleLabel = typeof film.role === 'string' && film.role.trim() ? film.role.trim() : 'Director';
-    const details = [roleLabel, yearLabel, runtimeLabel].filter(Boolean).join(' • ');
-
-    return {
-      ...film,
-      videoId: normalizedId,
-      details,
-      thumbnailCandidates: getDeterministicThumbnailFallbacks(normalizedId),
-      thumbnailUrl: assertYouTubeId(normalizedId)
-        ? `https://img.youtube.com/vi/${encodeURIComponent(normalizedId)}/hqdefault.jpg`
-        : null
-    };
-  });
-}
-
-function getFilmByVideoId(videoId) {
-  return filmRuntimeState.films.find((film) => film.videoId === videoId) || null;
-}
-
-function getVideoDetailContainer() {
-  return document.querySelector('[data-video-detail]');
-}
-
-function ensureVideoDetailContainer() {
-  let container = getVideoDetailContainer();
-  if (container) return container;
-
-  container = document.createElement('div');
-  container.dataset.videoDetail = 'true';
-  container.className = 'video-detail-layer';
-  document.body.appendChild(container);
-  return container;
-}
-
-function closeVideoDetail({ shouldNavigate = true, returnFocus = true } = {}) {
-  const container = getVideoDetailContainer();
-  if (!container || container.hidden) return;
-
-  container.hidden = true;
-  container.innerHTML = '';
-  container.classList.remove('open');
-  document.body.classList.remove('video-detail-open');
-  appRouteState.activeFilmId = null;
-
-  if (shouldNavigate && getAppRoute().filmId) {
-    navigateToRoute('/films');
-    applyRouteLayout(getAppRoute());
-  }
-
-  if (returnFocus && appRouteState.previousFocus?.focus) {
-    appRouteState.previousFocus.focus();
-  }
-}
-
-function renderVideoDetailFullScreen(film) {
-  const embedSrc = buildEmbedSrc(film.videoId);
-  const playerMarkup = embedSrc
-    ? `<iframe src="${embedSrc}" title="Player for ${escapeHtml(film.title)}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"></iframe>`
-    : `<div class="video-detail-fallback"><p>Video unavailable.</p></div>`;
-
-  return `
-    <section class="video-detail" role="dialog" aria-modal="true" aria-labelledby="video-detail-title">
-      <button class="video-detail-close clickable" type="button" aria-label="Close video details">← Back</button>
-      <div class="video-detail-content">
-        <div class="video-detail-player-wrap">${playerMarkup}</div>
-        <div class="video-detail-meta draft-panel">
-          <p class="eyebrow">Video Detail</p>
-          <h2 id="video-detail-title">${escapeHtml(film.title)}</h2>
-          <p>${escapeHtml(film.statement || 'No description available.')}</p>
-          <p class="video-detail-role">${escapeHtml(film.details || film.role || 'Metadata unavailable')}</p>
-        </div>
-      </div>
-    </section>`;
-}
-
-function openVideoDetail(videoId, { shouldNavigate = true, triggerElement = null } = {}) {
-  const film = getFilmByVideoId(videoId);
-  if (!film) {
-    const container = ensureVideoDetailContainer();
-    container.hidden = false;
-    container.innerHTML = `
-      <section class="video-detail" role="dialog" aria-modal="true" aria-labelledby="video-detail-title">
-        <button class="video-detail-close clickable" type="button" aria-label="Back to films">← Back</button>
-        <div class="video-detail-content">
-          <div class="video-detail-meta draft-panel video-not-found">
-            <p class="eyebrow">Video Detail</p>
-            <h2 id="video-detail-title">Film not found</h2>
-            <p>This film could not be found in the shared film catalogue.</p>
-            <p class="video-detail-role">Check the film ID in the URL or update <code>films.js</code>.</p>
-          </div>
-        </div>
-      </section>`;
-    container.classList.add('open');
-    document.body.classList.add('video-detail-open');
-    appRouteState.activeFilmId = null;
-    if (shouldNavigate && getAppRoute().filmId !== videoId) {
-      navigateToRoute(`/films/${encodeURIComponent(videoId)}`, { videoId });
-      applyRouteLayout(getAppRoute());
-    }
-    return;
-  }
-
-  appRouteState.activeFilmId = videoId;
-  appRouteState.previousFocus = triggerElement || document.activeElement;
-
-  const container = ensureVideoDetailContainer();
-  container.hidden = false;
-  container.innerHTML = renderVideoDetailFullScreen(film);
-  container.classList.add('open');
-  document.body.classList.add('video-detail-open');
-
-  container.querySelector('.video-detail-close')?.focus();
-
-  if (shouldNavigate && getAppRoute().filmId !== videoId) {
-    navigateToRoute(`/films/${encodeURIComponent(videoId)}`, { videoId });
-    applyRouteLayout(getAppRoute());
-  }
-}
-
-function createVideoCard(film) {
-  const id = film.videoId;
-  if (!id || !film.thumbnailUrl) return '';
-
-  return `
-    <article class="film-card draft-panel" data-video-id="${id}" data-video-detail-link="${id}" role="link" tabindex="0" aria-label="Open details for ${escapeHtml(film.title)}">
-      <span class="micro-label">PROJECT ${escapeHtml(id.slice(0, 4).toUpperCase())}</span>
-      <div class="video-shell">
-        <a class="video-thumb-link clickable" href="${toAppUrl(`/films/${id}`)}" data-video-detail-link="${id}" aria-label="Open details for ${escapeHtml(film.title)}">
-          <img src="${film.thumbnailUrl}" alt="${escapeHtml(film.title)}" loading="lazy" decoding="async" data-thumb-fallback-index="0" data-thumb-fallbacks="${escapeHtml((film.thumbnailCandidates || []).join('|'))}" />
-          <span class="video-overlay"><span class="play-button-overlay" role="img" aria-label="Play video"><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle cx="32" cy="32" r="31" class="play-button-ring" /><path d="M26 21.5L44.5 32L26 42.5V21.5Z" class="play-button-triangle" /></svg></span></span>
-        </a>
-      </div>
-      <div class="film-meta">
-        <h3><a class="film-title-link clickable" href="${toAppUrl(`/films/${id}`)}" data-video-detail-link="${id}">${escapeHtml(film.title)}</a></h3>
-        <p>${escapeHtml(film.details || film.role || '')}</p>
-      </div>
-    </article>`;
-}
-
-function initializeThumbnailFallbacks(container) {
-  container.addEventListener(
-    'error',
-    (event) => {
-      const image = event.target;
-      if (!(image instanceof HTMLImageElement)) return;
-      if (image.dataset.thumbFallbackComplete === 'true') return;
-
-      const fallbackList = (image.dataset.thumbFallbacks || '').split('|').filter(Boolean);
-      if (!fallbackList.length) return;
-
-      const currentIndex = Number(image.dataset.thumbFallbackIndex || '0');
-      const nextIndex = currentIndex + 1;
-
-      if (nextIndex >= fallbackList.length) {
-        image.dataset.thumbFallbackComplete = 'true';
-        return;
-      }
-
-      image.dataset.thumbFallbackIndex = String(nextIndex);
-      image.src = fallbackList[nextIndex];
-    },
-    true
+function thumbCandidates(id) {
+  return ['maxresdefault', 'hqdefault', 'mqdefault', 'default'].map(
+    (size) => `https://img.youtube.com/vi/${encodeURIComponent(id)}/${size}.jpg`
   );
 }
 
-function initializeFilmShowcase() {
-  const filmGrids = document.querySelectorAll('[data-film-grid]');
-  if (!filmGrids.length) {
-    logMissingElement('[data-film-grid]');
+function filmCard(film) {
+  const details = `${film.year} · ${film.runtime} · ${film.role}`;
+  return `<article class="film-card">
+      <a href="${toUrl(`/films/${encodeURIComponent(film.id)}`)}" data-link="/films/${encodeURIComponent(film.id)}" class="film-link">
+        <img src="${thumbCandidates(film.id)[0]}" alt="${lower(film.title)} thumbnail" data-thumbs="${thumbCandidates(film.id).join('|')}" data-thumb-index="0" loading="lazy" />
+        <span class="film-overlay">
+          <span>${lower(film.statement)}</span>
+          <small>${lower(details)}</small>
+        </span>
+      </a>
+      <h3>${lower(film.title)}</h3>
+    </article>`;
+}
+
+function aboutBlock() {
+  return `<section id="about" class="about">
+    <h2>about</h2>
+    <p class="thesis">i make films and writing that stay in the quiet after the scene ends.</p>
+    <p>andrew yan is a filmmaker and writer drawn to memory, silence, and unresolved feeling. the work leans toward atmosphere over explanation, and keeps meaning slightly out of reach.</p>
+    <p class="contact">
+      <a href="mailto:g13901913371@gmail.com?subject=hello%20andrew">g13901913371@gmail.com</a>
+      ·
+      <a href="https://www.instagram.com/andrewyyan/" target="_blank" rel="noopener noreferrer" aria-label="instagram">instagram</a>
+      ·
+      <a href="https://www.youtube.com/@AndrewYan-z8d" target="_blank" rel="noopener noreferrer" aria-label="youtube">youtube</a>
+    </p>
+  </section>`;
+}
+
+function homeView() {
+  const shown = homeExpanded ? FILMS : FILMS.slice(0, 4);
+  return `<section class="slate-wrap" id="slate">
+      <article class="slate" data-slate>
+        <p>director's slate</p>
+        <h1>andrew yan</h1>
+        <p>minimal, atmospheric films about memory, tension, and what remains unsaid.</p>
+        <button class="quiet-btn" data-slate-action>enter</button>
+      </article>
+    </section>
+    <section id="films" class="home-films">
+      <div class="heading-row">
+        <h2>work</h2>
+      </div>
+      <div class="film-grid">${shown.map(filmCard).join('')}</div>
+      <button class="quiet-btn" data-toggle-home>${homeExpanded ? 'show less' : 'show more'}</button>
+    </section>
+    ${aboutBlock()}`;
+}
+
+function filmsView() {
+  return `<section class="page-section"><h1>films</h1><div class="film-grid">${FILMS.map(filmCard).join('')}</div></section>`;
+}
+
+function filmDetailView(id) {
+  const film = FILMS.find((item) => item.id === id);
+  if (!film) return `<section class="page-section"><h1>film not found</h1></section>`;
+  return `<section class="page-section detail">
+    <a class="back-link" href="${toUrl('/films')}" data-link="/films">back to films</a>
+    <div class="player-wrap">
+      <iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(
+        film.id
+      )}" title="${lower(film.title)}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+    </div>
+    <h1>${lower(film.title)}</h1>
+    <p>${lower(film.statement)}</p>
+    <p class="meta">${lower(film.year)} · ${lower(film.runtime)} · ${lower(film.role)}</p>
+  </section>`;
+}
+
+function writingsView() {
+  const quote = WRITINGS[0]?.excerpt || '';
+  return `<section class="page-section writings">
+    <h1>writings</h1>
+    <p class="pull-quote" data-pull-quote>${lower(quote)}</p>
+    <div class="writing-list">
+      ${WRITINGS.map(
+        (item) => `<article class="writing-item" data-excerpt="${lower(item.excerpt)}">
+          <h2>${lower(item.title)}</h2>
+          <p>${lower(item.excerpt)}</p>
+          <a href="${toUrl(`/writings/${encodeURIComponent(item.slug)}`)}" data-link="/writings/${encodeURIComponent(item.slug)}">read</a>
+        </article>`
+      ).join('')}
+    </div>
+  </section>`;
+}
+
+function writingDetailView(slug) {
+  const item = WRITINGS.find((entry) => entry.slug === slug);
+  if (!item) return `<section class="page-section"><h1>writing not found</h1></section>`;
+  return `<section class="page-section writing-detail">
+    <a class="back-link" href="${toUrl('/writings')}" data-link="/writings">back to writings</a>
+    <h1>${lower(item.title)}</h1>
+    <article>${item.content
+      .split('\n\n')
+      .map((paragraph) => `<p>${lower(paragraph)}</p>`)
+      .join('')}</article>
+  </section>`;
+}
+
+function render() {
+  if (!app) return;
+  const route = routeFromLocation();
+  app.classList.remove('visible');
+
+  let html = '';
+  if (route.page === 'home') html = homeView();
+  if (route.page === 'films') html = filmsView();
+  if (route.page === 'film') html = filmDetailView(route.id);
+  if (route.page === 'writings') html = writingsView();
+  if (route.page === 'writing') html = writingDetailView(route.slug);
+
+  app.innerHTML = html;
+  updateActiveNav(route.page);
+  bindDynamicInteractions();
+
+  requestAnimationFrame(() => app.classList.add('visible'));
+
+  if (window.location.hash === '#about') {
+    const about = document.querySelector('#about');
+    about?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+  }
+}
+
+function updateActiveNav(page) {
+  document.querySelectorAll('.site-nav a[data-link], .brand[data-link]').forEach((link) => {
+    const target = link.getAttribute('data-link') || '';
+    const active =
+      (page === 'home' && target === '/') ||
+      (page === 'films' && target === '/films') ||
+      (page === 'film' && target.startsWith('/films')) ||
+      (page === 'writings' && target === '/writings') ||
+      (page === 'writing' && target.startsWith('/writings'));
+    link.classList.toggle('is-active', active);
+  });
+}
+
+function bindDynamicInteractions() {
+  document.querySelectorAll('img[data-thumbs]').forEach((img) => {
+    img.addEventListener('error', () => {
+      const list = (img.dataset.thumbs || '').split('|').filter(Boolean);
+      const index = Number(img.dataset.thumbIndex || 0);
+      const next = index + 1;
+      if (!list[next]) return;
+      img.dataset.thumbIndex = String(next);
+      img.src = list[next];
+    });
+  });
+
+  const slateButton = document.querySelector('[data-slate-action]');
+  slateButton?.addEventListener('click', () => {
+    const slate = document.querySelector('[data-slate]');
+    slate?.classList.remove('clap');
+    void slate?.offsetWidth;
+    slate?.classList.add('clap');
+    window.setTimeout(() => {
+      const filmsSection = document.querySelector('#films');
+      filmsSection?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+    }, reduceMotion ? 0 : 180);
+  });
+
+  const toggle = document.querySelector('[data-toggle-home]');
+  toggle?.addEventListener('click', () => {
+    homeExpanded = !homeExpanded;
+    render();
+    const filmsSection = document.querySelector('#films');
+    filmsSection?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+  });
+
+  const quote = document.querySelector('[data-pull-quote]');
+  if (quote) {
+    document.querySelectorAll('.writing-item').forEach((item) => {
+      item.addEventListener('mouseenter', () => {
+        quote.style.opacity = '0';
+        window.setTimeout(() => {
+          quote.textContent = item.dataset.excerpt || '';
+          quote.style.opacity = '1';
+        }, reduceMotion ? 0 : 140);
+      });
+    });
+  }
+}
+
+function setupNavigation() {
+  document.body.addEventListener('click', (event) => {
+    const link = event.target.closest('[data-link]');
+    if (link) {
+      event.preventDefault();
+      const path = link.getAttribute('data-link') || '/';
+      history.pushState({}, '', toUrl(path));
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      render();
+      return;
+    }
+
+    const aboutLink = event.target.closest('[data-about-link]');
+    if (!aboutLink) return;
+    event.preventDefault();
+
+    if (routeFromLocation().page === 'home') {
+      document.querySelector('#about')?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+      return;
+    }
+
+    history.pushState({}, '', toUrl('/', '#about'));
+    render();
+  });
+
+  window.addEventListener('popstate', render);
+}
+
+function setupCursor() {
+  if (!cursor || isTouchDevice) {
+    document.documentElement.classList.remove('cursor-hidden');
+    if (cursor) cursor.style.display = 'none';
     return;
   }
 
-  filmRuntimeState.films = normalizeFilmData(films);
-  filmGrids.forEach((filmGrid) => {
-    const limit = Number.parseInt(filmGrid.dataset.filmLimit || '', 10);
-    const filmsToRender = Number.isInteger(limit) ? filmRuntimeState.films.slice(0, limit) : filmRuntimeState.films;
-    filmGrid.innerHTML = filmsToRender.map(createVideoCard).join('');
-    initializeThumbnailFallbacks(filmGrid);
+  document.documentElement.classList.add('cursor-hidden');
+  let raf = 0;
+  let x = 0;
+  let y = 0;
 
-    filmGrid.addEventListener('click', (event) => {
-      const detailLink = event.target.closest('[data-video-detail-link]');
-      if (!detailLink) return;
-
-      event.preventDefault();
-      openVideoDetail(detailLink.dataset.videoDetailLink, {
-        triggerElement: detailLink,
-        shouldNavigate: true
-      });
-    });
-
-    filmGrid.addEventListener('keydown', (event) => {
-      if (event.key !== 'Enter' && event.key !== ' ') return;
-      const card = event.target.closest('[data-video-id]');
-      if (!card) return;
-
-      event.preventDefault();
-      openVideoDetail(card.dataset.videoId, {
-        triggerElement: card,
-        shouldNavigate: true
-      });
+  window.addEventListener('mousemove', (event) => {
+    x = event.clientX;
+    y = event.clientY;
+    if (raf) return;
+    raf = window.requestAnimationFrame(() => {
+      cursor.style.transform = `translate(${x}px, ${y}px)`;
+      raf = 0;
     });
   });
 
-  const syncDetailToRoute = () => {
-    const route = getAppRoute();
-    applyRouteLayout(route);
-    scrollToSectionByHash(window.location.hash);
-
-    if (route.filmId) {
-      openVideoDetail(route.filmId, { shouldNavigate: false });
-      return;
-    }
-
-    closeVideoDetail({ shouldNavigate: false, returnFocus: false });
-  };
-
-  window.addEventListener('popstate', syncDetailToRoute);
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && appRouteState.activeFilmId) {
-      closeVideoDetail();
-    }
+  document.addEventListener('pointerover', (event) => {
+    if (event.target.closest('a, button')) cursor.classList.add('active');
   });
 
-  document.body.addEventListener('click', (event) => {
-    const closeButton = event.target.closest('.video-detail-close');
-    if (closeButton) closeVideoDetail();
-  });
-
-  syncDetailToRoute();
-}
-
-function initializeAnimation() {
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (prefersReducedMotion || !window.gsap) return;
-  if (window.ScrollTrigger) gsap.registerPlugin(ScrollTrigger);
-
-  gsap.from('.site-header', { y: -80, opacity: 0, duration: 0.8, ease: 'power2.out' });
-  gsap.from('.reveal', { y: 48, opacity: 0, duration: 1, ease: 'power3.out', delay: 0.3 });
-}
-
-function initializeSmoothScroll() {
-  if (!window.Lenis) return;
-
-  const lenis = new Lenis({ duration: 1.1, smoothWheel: true, gestureOrientation: 'vertical' });
-  function raf(time) {
-    lenis.raf(time);
-    requestAnimationFrame(raf);
-  }
-  requestAnimationFrame(raf);
-}
-
-function initializeContactCta() {
-  const sayHelloLinks = document.querySelectorAll('[data-say-hello]');
-  if (!sayHelloLinks.length) return;
-
-  sayHelloLinks.forEach((sayHelloLink) => {
-    const feedback = sayHelloLink.parentElement?.querySelector('[data-contact-feedback]') || null;
-    const contactEmail = sayHelloLink.dataset.email || '';
-
-    sayHelloLink.addEventListener('click', async () => {
-      if (feedback) {
-        feedback.hidden = false;
-        feedback.textContent = contactEmail
-          ? `If your mail app did not open, email me at: ${contactEmail}`
-          : 'If your mail app did not open, please use the contact email listed on this page.';
-      }
-
-      if (!navigator.clipboard || !contactEmail) return;
-
-      try {
-        await navigator.clipboard.writeText(contactEmail);
-        if (feedback) feedback.textContent = `If your mail app did not open, the address was copied: ${contactEmail}`;
-      } catch (error) {
-        // no-op
-      }
-    });
+  document.addEventListener('pointerout', (event) => {
+    if (event.target.closest('a, button')) cursor.classList.remove('active');
   });
 }
 
-function initializeCursorAndNav() {
-  const cursor = document.querySelector('.cursor');
-  const nav = document.querySelector('.site-nav');
-  const menuToggle = document.querySelector('.menu-toggle');
-  const interactiveSelector = 'button, a, [role="button"], .clickable';
-
-  if (cursor) {
-    window.addEventListener('mousemove', (event) => {
-      cursor.style.left = `${event.clientX}px`;
-      cursor.style.top = `${event.clientY}px`;
-    });
-
-    document.addEventListener('pointerover', (event) => {
-      if (event.target.closest(interactiveSelector)) cursor.classList.add('active');
-    });
-
-    document.addEventListener('pointerout', (event) => {
-      if (!event.target.closest(interactiveSelector)) return;
-      if (event.relatedTarget?.closest(interactiveSelector)) return;
-      cursor.classList.remove('active');
-    });
-  }
-
-  if (menuToggle && nav) {
-    menuToggle.addEventListener('click', () => {
-      const isOpen = nav.classList.toggle('open');
-      menuToggle.setAttribute('aria-expanded', String(isOpen));
-    });
-
-    nav.querySelectorAll('a').forEach((link) => {
-      link.addEventListener('click', () => {
-        nav.classList.remove('open');
-        menuToggle.setAttribute('aria-expanded', 'false');
-      });
-    });
-  }
-
-  document.querySelectorAll('[data-route-link]').forEach((link) => {
-    link.addEventListener('click', (event) => {
-      const href = link.getAttribute('href');
-      const routePath = link.getAttribute('data-route-path');
-      if (!href || !routePath) return;
-
-      if (link.hasAttribute('data-nav-about') && getAppRoute().page === 'home') {
-        event.preventDefault();
-        const aboutSection = document.querySelector('#home-about');
-        if (aboutSection instanceof HTMLElement) {
-          const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-          aboutSection.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' });
-        }
-        return;
-      }
-
-      event.preventDefault();
-      navigateToRoute(routePath, { hash: '' });
-      applyRouteLayout(getAppRoute());
-      closeVideoDetail({ shouldNavigate: false, returnFocus: false });
-      window.scrollTo({ top: 0, behavior: 'auto' });
-    });
-  });
-}
-
-function initializeDirectorSlateComponent() {
-  const slate = document.querySelector('[data-directors-slate]');
-  const takeButton = document.querySelector('[data-slate-take]');
-  const sceneNode = document.querySelector('[data-scene]');
-  const takeNode = document.querySelector('[data-take]');
-  const rollNode = document.querySelector('[data-roll]');
-  const statementNode = document.querySelector('[data-slate-statement]');
-
-  if (!slate || !takeButton || !sceneNode || !takeNode || !rollNode || !statementNode) return;
-
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let scene = 1;
-  let take = 1;
-  let roll = 1;
-  let statementIndex = 0;
-
-  const statements = [
-    'I make films that stay in the silence after the credits. My work follows memory, tension, and unresolved emotion through minimal, atmospheric frames.',
-    'I frame quiet spaces where memory cracks open, and the audience discovers emotion between lines instead of inside them.',
-    'I chase cinematic tension through restraint—letting sound, shadow, and stillness reveal what dialogue refuses to name.'
-  ];
-
-  const formatNumber = (value) => String(value).padStart(2, '0');
-
-  const scrollToFilms = () => {
-    const route = getAppRoute();
-
-    if (route.page !== 'home') {
-      navigateToRoute('/', { hash: 'films' });
-      applyRouteLayout(getAppRoute());
-      window.requestAnimationFrame(() => {
-        scrollToSectionByHash('#films');
-      });
-      return;
-    }
-
-    scrollToSectionByHash('#films');
-  };
-
-  const handleTakeInteraction = () => {
-    take += 1;
-    if (take > 5) {
-      take = 1;
-      scene = (scene % 12) + 1;
-      roll += 1;
-    }
-
-    sceneNode.textContent = formatNumber(scene);
-    takeNode.textContent = formatNumber(take);
-    rollNode.textContent = `A${formatNumber(roll)}`;
-
-    statementIndex = (statementIndex + 1) % statements.length;
-    statementNode.textContent = statements[statementIndex];
-
-    slate.classList.remove('is-clapping');
-    void slate.offsetWidth;
-    slate.classList.add('is-clapping');
-
-    window.setTimeout(scrollToFilms, prefersReducedMotion ? 0 : 170);
-  };
-
-  takeButton.addEventListener('click', handleTakeInteraction);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  renderSharedAboutContent();
-  applyRouteLayout(getAppRoute());
-  initializeGlobalCursorLock(window.CURSOR_LOCK_CONFIG);
-  initializeFilmShowcase();
-  initializeDirectorSlateComponent();
-  initializeAnimation();
-  initializeSmoothScroll();
-  initializeContactCta();
-  initializeCursorAndNav();
-});
+setupNavigation();
+setupCursor();
+render();

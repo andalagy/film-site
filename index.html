@@ -3,15 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Andrew Yan | Film</title>
-    <meta
-      name="description"
-      content="Portfolio for student filmmaker Andrew Yan featuring films, projects, and creative journey."
-    />
+    <title>andrew yan</title>
+    <meta name="description" content="andrew yan films and writings" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Syne:wght@500;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Cormorant+Garamond:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
     <script>
@@ -25,140 +22,28 @@
         window.history.replaceState(null, '', location.pathname.slice(0, -1) + decoded + location.hash);
       })(window.location);
     </script>
-    <!-- Keep global stylesheet loaded here so every page inherits the cinematic theme. -->
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div class="draft-overlay" aria-hidden="true">
-      <span class="draft-axis draft-axis-x">AXIS X: 00 — 128</span>
-      <span class="draft-axis draft-axis-y">AXIS Y: 00 — 72</span>
-      <span class="draft-scale">SCALE 1:1 / REF 24FPS</span>
-    </div>
+    <div class="ambient" aria-hidden="true"></div>
+    <div class="grain" aria-hidden="true"></div>
     <div class="cursor" aria-hidden="true"></div>
 
-    <header class="site-header" id="top">
-      <a href="/andalagy/" class="brand" data-route-link="home" data-route-path="/">AY / FILM</a>
-      <button class="menu-toggle" aria-label="Toggle menu" aria-expanded="false">Menu</button>
-      <nav class="site-nav" aria-label="Main navigation">
-        <a href="/andalagy/" data-route-link="home" data-route-path="/">Home</a>
-        <a href="/andalagy/films" data-route-link="films" data-route-path="/films">Films</a>
-        <a href="/andalagy/about" data-route-link="about" data-route-path="/about" data-nav-about>About</a>
+    <header class="site-header">
+      <a class="brand" href="/andalagy/" data-link="/">andrew yan</a>
+      <nav class="site-nav" aria-label="main navigation">
+        <a href="/andalagy/" data-link="/">home</a>
+        <a href="/andalagy/films" data-link="/films">films</a>
+        <a href="/andalagy/writings" data-link="/writings">writings</a>
+        <a href="/andalagy/#about" data-about-link>about</a>
       </nav>
     </header>
 
-    <main>
-      <section class="hero route-pane" id="slate" data-route-pane="home">
-        <div class="hero-content">
-          <article class="directors-slate" data-directors-slate>
-            <div class="slate-clapper" aria-hidden="true">
-              <span></span>
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-            <p class="eyebrow">Director's Slate</p>
-            <h1 class="reveal">Andrew Yan</h1>
-            <p class="slate-statement" data-slate-statement>
-              I make films that stay in the silence after the credits. My work follows memory, tension, and unresolved emotion through minimal, atmospheric frames.
-            </p>
-            <div class="slate-credits" aria-label="Creative credits">
-              <span>Director</span>
-              <span>Writer</span>
-              <span>Editor</span>
-              <span>Cinematographer</span>
-              <span>Sound Design</span>
-            </div>
-            <div class="slate-meta" aria-live="polite">
-              <p>SCENE <strong data-scene>01</strong></p>
-              <p>TAKE <strong data-take>01</strong></p>
-              <p>ROLL <strong data-roll>A01</strong></p>
-            </div>
-            <div class="slate-draft-specs" aria-label="Drafting references">
-              <p>AXIS 01</p>
-              <p>GRID B2</p>
-              <p>SCALE 1:1</p>
-              <p>REF 24FPS</p>
-            </div>
-            <div class="hero-actions">
-              <button class="btn primary magnetic" type="button" data-slate-take aria-label="Clap slate and scroll to selected films">
-                Action
-              </button>
-            </div>
-          </article>
-        </div>
-      </section>
+    <main id="app" class="route-fade"></main>
 
-      <section class="section films route-pane" id="films" data-route-pane="home">
-        <div class="section-head">
-          <p class="eyebrow">Selected Work</p>
-          <h2>Selected Films</h2>
-        </div>
-        <div class="film-grid" data-film-grid data-film-limit="4" aria-live="polite"></div>
-        <div class="section-actions">
-          <a class="btn magnetic" href="/andalagy/films" data-route-link="films" data-route-path="/films">Show more</a>
-        </div>
-      </section>
-
-      <section class="section about route-pane" id="home-about" data-route-pane="home">
-        <div data-about-content-slot></div>
-      </section>
-
-      <section class="section films route-pane" id="films-page" data-route-pane="films">
-        <div class="section-head">
-          <p class="eyebrow">Filmography</p>
-          <h2>Full Filmography</h2>
-        </div>
-        <div class="film-grid" data-film-grid aria-live="polite"></div>
-      </section>
-
-      <section class="section about route-pane" id="about" data-route-pane="about">
-        <div data-about-content-slot></div>
-      </section>
-    </main>
-
-    <template id="about-content-template">
-      <article class="about-content">
-        <header class="section-head about-head">
-          <p class="eyebrow">About</p>
-          <h1>About</h1>
-        </header>
-        <div class="about-layout">
-          <img class="about-portrait" src="https://69914d1f681c79fa0bcd66be.imgix.net/pfp.jpg?w=320&h=320" alt="Portrait of Andrew Yan" />
-          <div class="about-copy">
-            <p>
-              I tell stories about the pause before meaning arrives—where memory, sound, and feeling stay open long enough to be noticed.
-            </p>
-            <p>
-              Andrew Yan is a filmmaker and writer exploring ambiguity, silence, and emotional residue in everyday spaces. His recent work moves between short narrative film and prose, with an attention to atmosphere over explanation and to what lingers after a scene ends.
-            </p>
-          </div>
-        </div>
-        <section class="about-timeline" aria-labelledby="about-timeline-title">
-          <h2 id="about-timeline-title">Timeline</h2>
-          <ul class="timeline">
-            <li><span>2019</span>First micro short completed.</li>
-            <li><span>2024</span>First narrative short film completed.</li>
-          </ul>
-        </section>
-        <section class="contact" aria-label="Contact Andrew Yan">
-          <h2>Contact</h2>
-          <p>
-            <a href="mailto:g13901913371@gmail.com?subject=Hello%20Andrew" data-say-hello data-email="g13901913371@gmail.com">g13901913371@gmail.com</a>
-            ·
-            <a href="https://www.youtube.com/@AndrewYan-z8d" target="_blank" rel="noopener noreferrer">YouTube</a>
-            ·
-            <a href="https://www.instagram.com/andrewyyan/" target="_blank" rel="noopener noreferrer">Instagram</a>
-          </p>
-          <p class="contact-feedback" data-contact-feedback aria-live="polite" hidden></p>
-        </section>
-      </article>
-    </template>
-
-    <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/bundled/lenis.min.js"></script>
     <script defer src="./youtube-utils.js"></script>
     <script defer src="./films.js"></script>
+    <script defer src="./writings.js"></script>
     <script defer src="./script.js"></script>
   </body>
 </html>
