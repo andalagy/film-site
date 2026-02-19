@@ -1,3 +1,4 @@
+//render collective writing detail pages
 (function () {
   function writingsView() {
     const writings = window.APP_DATA?.writings || [];
