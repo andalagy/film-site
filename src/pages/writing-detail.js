@@ -1,3 +1,4 @@
+//render individual writing detail pages
 (function () {
   function writingContentHtml(item) {
     return item.content
