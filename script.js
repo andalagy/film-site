@@ -1,3 +1,4 @@
+//animation renders & renders film & writing pages
 const APP_BASE_PATH = '/andalagy';
 const FILMS = Array.isArray(window.FILMS_DATA) ? window.FILMS_DATA : [];
 const WRITINGS = Array.isArray(window.WRITINGS_DATA) ? window.WRITINGS_DATA : [];
