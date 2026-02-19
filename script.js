@@ -310,6 +310,8 @@ function aboutBlock() {
       ·
       <a href="https://www.instagram.com/andalagy/" target="_blank" rel="noopener noreferrer" aria-label="instagram">instagram</a>
       ·
+      <a href="https://letterboxd.com/andalagy/" target="_blank" rel="noopener noreferrer" aria-label="letterboxd">letterboxd</a>
+      ·
       <a href="https://www.youtube.com/@andalagy/" target="_blank" rel="noopener noreferrer" aria-label="youtube">youtube</a>
     </p>
   </section>`;
