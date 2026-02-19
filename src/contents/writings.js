@@ -1,11 +1,10 @@
 (function attachWritingsContent(globalScope) {
-  // how to add a writing: append one object with { slug, title, excerpt, content, coverImage? }.
   const writings = [
-  {
-    slug: 'lull',
-    title: 'lull',
-    excerpt: 'lull. a poem.',
-    content: `Alcyonacea
+    {
+      slug: 'lull',
+      title: 'lull',
+      excerpt: 'lull. a poem.',
+      content: `Alcyonacea
 	
 Sway on a gray cradle
 
@@ -40,12 +39,12 @@ Ocean cradles ancient dreams
 Time flows, and it sleeps.
 
 `
-  },
-  {
-    slug: 'the-ink-the-bottle-and-the-book',
-    title: 'the ink, the bottle, and the book',
-    excerpt: 'three objects.',
-    content: `In the corner of the abandoned study sat three things.
+    },
+    {
+      slug: 'the-ink-the-bottle-and-the-book',
+      title: 'the ink, the bottle, and the book',
+      excerpt: 'three objects.',
+      content: `In the corner of the abandoned study sat three things.
 	
 A black porcelain vase, chipped and cold.
 
@@ -102,12 +101,12 @@ The vase stood still.
 The ink bottle was empty.
 
 And the book pulsed faintly, like a living heart, waiting for the next night.`
-  },
-  {
-    slug: 'a-b-c',
-    title: 'a, b, c.',
-    excerpt: 'a simple conversation between three people.',
-    content: `A:
+    },
+    {
+      slug: 'a-b-c',
+      title: 'a, b, c.',
+      excerpt: 'a simple conversation between three people.',
+      content: `A:
 It’s heavier when you don’t look at it.
 
 B:
@@ -277,12 +276,12 @@ Because now we have to decide what we brought with us.
 
 C:
 And who gets to keep it.`
-  },
-  {
-    slug: 'keep-calm-and-carry-on',
-    title: 'keep calm and carry on',
-    excerpt: 'just keep calm.',
-    content: `So where are you?
+    },
+    {
+      slug: 'keep-calm-and-carry-on',
+      title: 'keep calm and carry on',
+      excerpt: 'just keep calm.',
+      content: `So where are you?
 
 You’re in someplace dark.
 In some moving vehicle. Going 5 miles per hour. 
@@ -318,7 +317,7 @@ You look down.
 The cabbage seems heavier than it should have been.
 More.
 But it seems like you carried it far more.`
-  }
+    }
   ];
 
   globalScope.WRITINGS_DATA = writings;

@@ -15,7 +15,6 @@ const SLATE_META = {
 
 const SLATE_PRIMARY_FIELDS = ['scene', 'take', 'roll', 'status'];
 
-window.ContentValidation?.run({ films: FILMS, writings: WRITINGS });
 const SLATE_LIGHT_SEED = {
   driftX: ((Math.random() * 6) - 3).toFixed(2),
   driftY: ((Math.random() * 4) - 2).toFixed(2),
@@ -213,9 +212,7 @@ function buildWatchUrl(id) {
 function thumbCandidates(id) {
   const safeId = cleanVideoId(id);
   if (!safeId) return [];
-  return ['hqdefault', 'mqdefault', 'default'].map(
-    (size) => `https://img.youtube.com/vi/${encodeURIComponent(safeId)}/${size}.jpg`
-  );
+  return [`https://img.youtube.com/vi/${encodeURIComponent(safeId)}/hqdefault.jpg`];
 }
 
 function renderYouTubeThumbnail({ id, alt, className = '', loading = 'lazy' }) {
@@ -252,14 +249,15 @@ function writingDetailPath(slug) {
   return `/writings/${encodeURIComponent(slug)}`;
 }
 
-const WRITINGS_HERO_IMAGE = `${APP_BASE_PATH}/src/content/writings/covers/writings-canvas.svg`;
+const WRITINGS_HERO_IMAGE =
+  'linear-gradient(180deg, rgba(18, 19, 23, 0.75), rgba(10, 10, 13, 0.95))';
 
 function writingCard(item, index = 0) {
   const writingPath = writingDetailPath(item.slug);
   const sliceIndexDesktop = ((index % 4) + 4) % 4;
   const sliceIndexTablet = ((index % 2) + 2) % 2;
-  const coverImage = item.coverImage || WRITINGS_HERO_IMAGE;
-  const mediaMarkup = `<div class="writing-composite-cover" aria-hidden="true" style="--slice-index-4:${sliceIndexDesktop};--slice-index-2:${sliceIndexTablet};--writings-hero-image:url('${coverImage}');">
+  const coverImage = item.cover || item.coverImage || WRITINGS_HERO_IMAGE;
+  const mediaMarkup = `<div class="writing-composite-cover" aria-hidden="true" style="--slice-index-4:${sliceIndexDesktop};--slice-index-2:${sliceIndexTablet};--writings-hero-image:${coverImage};">
       <span class="writing-haze"></span>
     </div>`;
 
@@ -533,7 +531,7 @@ function setupFilmEmbedFallback() {
   if (!wrap) return;
 
   const id = cleanVideoId(wrap.dataset.filmId || '');
-  const film = FILMS.find((item) => cleanVideoId(item.id) === id);
+  const film = FILMS.find((item) => cleanVideoId(item.youtubeId) === id);
   if (!film) return;
 
   if (!isValidVideoId(id)) {
