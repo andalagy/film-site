@@ -43,7 +43,7 @@ const DREAM_TUNING = {
 };
 
 
-const GRAIN_INTENSITY = 0.11; // set opacity here to tune grain visibility quickly
+const GRAIN_INTENSITY = 0.14; // set opacity here to tune grain visibility quickly
 const REVEAL_EASE = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
 
 const FLOATING_TEXT_SNIPPETS = [
@@ -75,7 +75,6 @@ let fogRaf = 0;
 let routeTransitionToken = 0;
 let headingBreathObserver = null;
 let memorySubtitleObserver = null;
-let slateMiniObserver = null;
 let memorySubtitleFadeTimeout = 0;
 let revealOnceObserver = null;
 let activeMemoryLine = '';
@@ -259,6 +258,13 @@ function writingDetailPath(slug) {
 const WRITINGS_HERO_IMAGE =
   'linear-gradient(180deg, rgba(18, 19, 23, 0.75), rgba(10, 10, 13, 0.95))';
 
+function writingTitleSizeClass(title = '') {
+  const length = String(title || '').trim().length;
+  if (length > 40) return 'title--xs';
+  if (length > 26) return 'title--sm';
+  return 'title--lg';
+}
+
 function writingCard(item, index = 0) {
   const writingPath = writingDetailPath(item.slug);
   const sliceIndexDesktop = ((index % 4) + 4) % 4;
@@ -274,20 +280,23 @@ function writingCard(item, index = 0) {
     description: item.excerpt,
     mediaMarkup,
     cardClass: 'writing-card',
+    titleClass: writingTitleSizeClass(item.title),
+    titleInTile: true,
     animKey: `writings:card:${item.slug}`,
     staggerIndex: index
   });
 }
 
-function workCard({ href, title, description, mediaMarkup, cardClass = '', animKey = '', staggerIndex = 0 }) {
+function workCard({ href, title, description, mediaMarkup, cardClass = '', titleClass = '', titleInTile = false, animKey = '', staggerIndex = 0 }) {
   const subtitle = lower(description || '').trim();
   return `<article class="work-card ${cardClass}" data-anim-key="${animKey}" data-reveal="card" data-reveal-stagger="${staggerIndex}">
     <a href="${toUrl(href)}" data-link="${href}" class="work-card-link" data-echo-target data-anim-key="${animKey}:link" data-reveal="link" data-reveal-stagger="${staggerIndex}" aria-label="${lower(title)}">
       <div class="work-tile">
         ${mediaMarkup}
+        ${titleInTile ? `<h3 class="work-title work-title--in-tile ${titleClass}">${lower(title)}</h3>` : ''}
       </div>
-      <h3 class="work-title">${lower(title)}</h3>
-      ${subtitle ? `<p class="work-subtitle">${subtitle}</p>` : ''}
+      ${titleInTile ? '' : `<h3 class="work-title ${titleClass}">${lower(title)}</h3>`}
+      ${subtitle && !titleInTile ? `<p class="work-subtitle">${subtitle}</p>` : ''}
     </a>
   </article>`;
 }
@@ -318,10 +327,6 @@ function homeView() {
         ${slateMetaMarkup()}
       </article>
     </section>
-    <article class="slate-mini" data-slate-mini hidden aria-hidden="true" data-anim-key="home:slate:mini" data-reveal="hero">
-      <p class="slate-mini-title">andrew yan</p>
-      ${slateMetaMarkup()}
-    </article>
     <section id="films" class="home-films" data-anim-key="home:films:section" data-reveal="section">
       <div class="heading-row">
         <h2 data-breath-heading data-anim-key="home:films:heading" data-reveal="heading">films</h2>
@@ -443,39 +448,6 @@ function handleSlateInteract() {
   window.setTimeout(proceed, reduceMotion ? 0 : 420);
 }
 
-function setupPersistentSlate() {
-  if (slateMiniObserver) {
-    slateMiniObserver.disconnect();
-    slateMiniObserver = null;
-  }
-
-  const heroSlate = document.querySelector('[data-slate]');
-  const miniSlate = document.querySelector('[data-slate-mini]');
-  if (!heroSlate || !miniSlate || routeFromLocation().page !== 'home') return;
-
-  miniSlate.addEventListener('click', handleSlateInteract);
-
-  const updateMiniSlate = (showMini) => {
-    miniSlate.hidden = !showMini;
-    miniSlate.setAttribute('aria-hidden', showMini ? 'false' : 'true');
-    miniSlate.classList.toggle('is-visible', showMini);
-  };
-
-  if (window.matchMedia('(max-width: 640px)').matches) {
-    updateMiniSlate(false);
-    return;
-  }
-
-  slateMiniObserver = new IntersectionObserver(
-    ([entry]) => {
-      updateMiniSlate(!entry.isIntersecting);
-    },
-    { threshold: 0.25 }
-  );
-
-  slateMiniObserver.observe(heroSlate);
-}
-
 function updateActiveNav(page) {
   document.querySelectorAll('.site-nav a[data-link], .brand[data-link]').forEach((link) => {
     const target = link.getAttribute('data-link') || '';
@@ -490,10 +462,27 @@ function updateActiveNav(page) {
 }
 
 function mountGrainOverlay() {
-  const grain = document.querySelector('.grain-overlay');
-  if (!grain) return;
-  grain.style.setProperty('--grain-opacity', String(GRAIN_INTENSITY));
+  let grain = document.querySelector('.grain-overlay');
+  if (!grain) {
+    grain = document.createElement('div');
+    grain.className = 'grain-overlay';
+    grain.setAttribute('aria-hidden', 'true');
+    grain.innerHTML = '<svg viewBox="0 0 160 160" preserveAspectRatio="none" aria-hidden="true"><filter id="grain-noise"><feTurbulence type="fractalNoise" baseFrequency="0.88" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#grain-noise)" opacity="1"/></svg>';
+    document.body.appendChild(grain);
+  }
+
+  const applyOpacity = (value) => grain.style.setProperty('--grain-opacity', value.toFixed(2));
+  applyOpacity(GRAIN_INTENSITY);
   grain.style.setProperty('--grain-motion', reduceMotion ? '0s' : '8s');
+
+  if (!window.location.hostname.includes('localhost') || grain.dataset.debugBound === '1') return;
+  grain.dataset.debugBound = '1';
+  let enabled = true;
+  window.addEventListener('keydown', (event) => {
+    if (event.key.toLowerCase() !== 'g' || event.metaKey || event.ctrlKey || event.altKey) return;
+    enabled = !enabled;
+    applyOpacity(enabled ? GRAIN_INTENSITY : 0);
+  });
 }
 
 function revealElementImmediately(node) {
@@ -564,7 +553,6 @@ function bindDynamicInteractions() {
   setupHeadingBreath();
   setupMemorySubtitle();
   setupHoverDust();
-  setupPersistentSlate();
 
   setupFilmEmbedFallback();
 }
