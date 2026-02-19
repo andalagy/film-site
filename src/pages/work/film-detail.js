@@ -4,7 +4,7 @@
     const cleanId = window.AppUtils.cleanVideoId(id);
     if (!cleanId) return `<section class="page-section"><h1>film not found</h1></section>`;
 
-    const film = films.find((item) => window.AppUtils.cleanVideoId(item.id) === cleanId);
+    const film = films.find((item) => window.AppUtils.cleanVideoId(item.youtubeId) === cleanId);
     if (!film) return `<section class="page-section"><h1>film not found</h1></section>`;
 
     const validId = window.AppUtils.isValidVideoId(cleanId);

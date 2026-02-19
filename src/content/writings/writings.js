@@ -1,4 +1,6 @@
-window.WRITINGS_DATA = [
+(function attachWritingsContent(globalScope) {
+  // how to add a writing: append one object with { slug, title, excerpt, content, coverImage? }.
+  const writings = [
   {
     slug: 'lull',
     title: 'lull',
@@ -317,4 +319,7 @@ The cabbage seems heavier than it should have been.
 More.
 But it seems like you carried it far more.`
   }
-];
+  ];
+
+  globalScope.WRITINGS_DATA = writings;
+})(window);

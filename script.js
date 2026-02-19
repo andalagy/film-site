@@ -14,6 +14,8 @@ const SLATE_META = {
 };
 
 const SLATE_PRIMARY_FIELDS = ['scene', 'take', 'roll', 'status'];
+
+window.ContentValidation?.run({ films: FILMS, writings: WRITINGS });
 const SLATE_LIGHT_SEED = {
   driftX: ((Math.random() * 6) - 3).toFixed(2),
   driftY: ((Math.random() * 4) - 2).toFixed(2),
@@ -229,7 +231,7 @@ function filmDetailPath(id) {
 }
 
 function filmCard(film) {
-  const cleanId = cleanVideoId(film.id);
+  const cleanId = cleanVideoId(film.youtubeId);
   if (!cleanId) return '';
   const filmPath = filmDetailPath(cleanId);
   return workCard({
@@ -250,13 +252,14 @@ function writingDetailPath(slug) {
   return `/writings/${encodeURIComponent(slug)}`;
 }
 
-const WRITINGS_HERO_IMAGE = '/images/writings-canvas.svg';
+const WRITINGS_HERO_IMAGE = `${APP_BASE_PATH}/src/content/writings/covers/writings-canvas.svg`;
 
 function writingCard(item, index = 0) {
   const writingPath = writingDetailPath(item.slug);
   const sliceIndexDesktop = ((index % 4) + 4) % 4;
   const sliceIndexTablet = ((index % 2) + 2) % 2;
-  const mediaMarkup = `<div class="writing-composite-cover" aria-hidden="true" style="--slice-index-4:${sliceIndexDesktop};--slice-index-2:${sliceIndexTablet};--writings-hero-image:url('${WRITINGS_HERO_IMAGE}');">
+  const coverImage = item.coverImage || WRITINGS_HERO_IMAGE;
+  const mediaMarkup = `<div class="writing-composite-cover" aria-hidden="true" style="--slice-index-4:${sliceIndexDesktop};--slice-index-2:${sliceIndexTablet};--writings-hero-image:url('${coverImage}');">
       <span class="writing-haze"></span>
     </div>`;
 
@@ -332,13 +335,13 @@ function homeView() {
 }
 
 function filmFallbackView(film, reason) {
-  const thumb = renderYouTubeThumbnail({ id: film.id, alt: `${lower(film.title)} thumbnail` });
+  const thumb = renderYouTubeThumbnail({ id: film.youtubeId, alt: `${lower(film.title)} thumbnail` });
   const safeReason = lower(reason || 'embed failed');
   return `<div class="film-fallback" data-film-fallback data-reason="${safeReason}">
     ${thumb}
     <div class="film-fallback-copy">
       <p>this video can’t be embedded. watch on youtube.</p>
-      <a class="quiet-btn" target="_blank" rel="noopener noreferrer" href="${buildWatchUrl(film.id)}">watch on youtube</a>
+      <a class="quiet-btn" target="_blank" rel="noopener noreferrer" href="${buildWatchUrl(film.youtubeId)}">watch on youtube</a>
     </div>
   </div>`;
 }
