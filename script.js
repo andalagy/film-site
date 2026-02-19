@@ -80,6 +80,19 @@ let revealOnceObserver = null;
 let activeMemoryLine = '';
 let filmGateTimer = 0;
 let floatingTextNearTimer = 0;
+const animationSeenKeys = new Set();
+const animationRegistry = {
+  hasSeen(key) {
+    const normalized = String(key || '').trim();
+    if (!normalized) return false;
+    return animationSeenKeys.has(normalized);
+  },
+  markSeen(key) {
+    const normalized = String(key || '').trim();
+    if (!normalized) return;
+    animationSeenKeys.add(normalized);
+  }
+};
 const ambientMotion = {
   tx: window.innerWidth * 0.5,
   ty: window.innerHeight * 0.4,
@@ -470,7 +483,7 @@ function revealElementImmediately(node) {
 
 function useRevealOnce() {
   if (document.querySelector('.page--writing-detail')) return;
-  const registry = window.AnimationRegistry;
+  const registry = animationRegistry;
   const nodes = document.querySelectorAll('[data-anim-key]');
   if (!nodes.length) return;
 
@@ -721,7 +734,7 @@ function setupHeadingBreath() {
   headingBreathObserver?.disconnect();
   const headings = document.querySelectorAll('[data-breath-heading], .about h2');
   if (!headings.length) return;
-  const registry = window.AnimationRegistry;
+  const registry = animationRegistry;
   headingBreathObserver = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
