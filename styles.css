@@ -132,12 +132,6 @@ body {
   filter: blur(20px);
 }
 
-.dream-noise {
-  opacity: 0.05;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='130' viewBox='0 0 130 130'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='130' height='130' filter='url(%23n)' opacity='.32'/%3E%3C/svg%3E");
-  animation: grainShift 20s steps(6) infinite;
-}
-
 .whisper-line {
   position: fixed;
   right: clamp(0.8rem, 2.2vw, 1.8rem);
@@ -202,20 +196,32 @@ body.home-page main {
 
 
 
-.grain-overlay {
+#grain-layer{
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 999;
-  opacity: var(--grain-opacity, 0.14);
-  mix-blend-mode: soft-light;
-  animation: grainDrift var(--grain-motion, 8s) steps(6) infinite;
+  z-index: 35;
+  opacity: var(--grain-opacity, 0.12);
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='260' height='260' filter='url(%23n)' opacity='1'/></svg>");
+  background-repeat: repeat;
+  background-size: 260px 260px;
+  transform: translate3d(0,0,0);
+  will-change: transform;
+  animation: grain-drift 8s linear infinite;
 }
 
-.grain-overlay svg {
-  width: 100%;
-  height: 100%;
-  display: block;
+#grain-layer::after{
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background-image: inherit;
+  background-repeat: repeat;
+  background-size: 320px 320px;
+  opacity: 0.55;
+  transform: translate3d(0,0,0) rotate(0.0001deg);
+  will-change: transform;
+  animation: grain-drift-2 11s linear infinite;
 }
 
 main {
@@ -878,17 +884,18 @@ body.slate-flash::after {
   50% { transform: translate3d(calc(var(--parallax-x) * 0.95 + 1.3%), calc(var(--parallax-y) * 0.95 - 1%), 0); }
 }
 
-@keyframes grainDrift {
-  0% { transform: translate3d(0, 0, 0); }
-  25% { transform: translate3d(-1%, 1%, 0); }
-  50% { transform: translate3d(1%, -1%, 0); }
-  75% { transform: translate3d(-1%, -1%, 0); }
-  100% { transform: translate3d(0, 0, 0); }
+@keyframes grain-drift{
+  0%   { transform: translate3d(0,0,0); }
+  100% { transform: translate3d(-10%, -10%, 0); }
 }
 
-@keyframes grainShift {
-  from { transform: translate3d(0, 0, 0); }
-  to { transform: translate3d(0.8%, -0.6%, 0); }
+@keyframes grain-drift-2{
+  0%   { transform: translate3d(0,0,0); }
+  100% { transform: translate3d(10%, -6%, 0); }
+}
+
+@supports not (mix-blend-mode: overlay){
+  #grain-layer{ mix-blend-mode: normal; opacity: 0.10; }
 }
 
 @keyframes headingBreath {
@@ -952,7 +959,7 @@ body.slate-flash::after {
 @media (prefers-reduced-motion: reduce) {
   :root { --motion-intensity: 0; }
   *, *::before, *::after { animation: none !important; transition-duration: 0ms !important; }
-  .dream-haze, .dream-leak, .grain-overlay { transform: none !important; animation: none !important; }
+  .dream-haze, .dream-leak, #grain-layer, #grain-layer::after { transform: none !important; animation: none !important; }
   .whisper-line { display: none; }
   .slate { animation: none !important; }
   .slate::before,

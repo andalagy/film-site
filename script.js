@@ -43,7 +43,6 @@ const DREAM_TUNING = {
 };
 
 
-const GRAIN_INTENSITY = 0.14; // set opacity here to tune grain visibility quickly
 const REVEAL_EASE = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
 
 const FLOATING_TEXT_SNIPPETS = [
@@ -459,30 +458,6 @@ function updateActiveNav(page) {
       (page === 'writings' && target.startsWith('/writings')) ||
       (page === 'writing' && target.startsWith('/writings'));
     link.classList.toggle('is-active', active);
-  });
-}
-
-function mountGrainOverlay() {
-  let grain = document.querySelector('.grain-overlay');
-  if (!grain) {
-    grain = document.createElement('div');
-    grain.className = 'grain-overlay';
-    grain.setAttribute('aria-hidden', 'true');
-    grain.innerHTML = '<svg viewBox="0 0 160 160" preserveAspectRatio="none" aria-hidden="true"><filter id="grain-noise"><feTurbulence type="fractalNoise" baseFrequency="0.88" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#grain-noise)" opacity="1"/></svg>';
-    document.body.appendChild(grain);
-  }
-
-  const applyOpacity = (value) => grain.style.setProperty('--grain-opacity', value.toFixed(2));
-  applyOpacity(GRAIN_INTENSITY);
-  grain.style.setProperty('--grain-motion', reduceMotion ? '0s' : '8s');
-
-  if (!window.location.hostname.includes('localhost') || grain.dataset.debugBound === '1') return;
-  grain.dataset.debugBound = '1';
-  let enabled = true;
-  window.addEventListener('keydown', (event) => {
-    if (event.key.toLowerCase() !== 'g' || event.metaKey || event.ctrlKey || event.altKey) return;
-    enabled = !enabled;
-    applyOpacity(enabled ? GRAIN_INTENSITY : 0);
   });
 }
 
@@ -1089,7 +1064,6 @@ function applyScrollDissolve() {
 setupNavigation();
 setupCursor();
 setupAmbientSeed();
-mountGrainOverlay();
 setupAmbientDrift();
 setupFogRevealTracking();
 setupFloatingTextLayer();
