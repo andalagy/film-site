@@ -282,12 +282,13 @@ function writingCard(item, index = 0) {
     cardClass: 'writing-card',
     titleClass: writingTitleSizeClass(item.title),
     titleInTile: true,
+    subtitleClass: 'writing-excerpt',
     animKey: `writings:card:${item.slug}`,
     staggerIndex: index
   });
 }
 
-function workCard({ href, title, description, mediaMarkup, cardClass = '', titleClass = '', titleInTile = false, animKey = '', staggerIndex = 0 }) {
+function workCard({ href, title, description, mediaMarkup, cardClass = '', titleClass = '', titleInTile = false, subtitleClass = 'work-subtitle', animKey = '', staggerIndex = 0 }) {
   const subtitle = lower(description || '').trim();
   return `<article class="work-card ${cardClass}" data-anim-key="${animKey}" data-reveal="card" data-reveal-stagger="${staggerIndex}">
     <a href="${toUrl(href)}" data-link="${href}" class="work-card-link" data-echo-target data-anim-key="${animKey}:link" data-reveal="link" data-reveal-stagger="${staggerIndex}" aria-label="${lower(title)}">
@@ -296,7 +297,7 @@ function workCard({ href, title, description, mediaMarkup, cardClass = '', title
         ${titleInTile ? `<h3 class="work-title work-title--in-tile ${titleClass}">${lower(title)}</h3>` : ''}
       </div>
       ${titleInTile ? '' : `<h3 class="work-title ${titleClass}">${lower(title)}</h3>`}
-      ${subtitle && !titleInTile ? `<p class="work-subtitle">${subtitle}</p>` : ''}
+      ${subtitle ? `<p class="${subtitleClass}">${subtitle}</p>` : ''}
     </a>
   </article>`;
 }
@@ -376,7 +377,7 @@ async function render() {
   const route = routeFromLocation();
 
   const runTransition = !reduceMotion;
-  if (runTransition && app.innerHTML.trim()) {
+  if (runTransition && route.page !== 'writing' && app.innerHTML.trim()) {
     app.classList.remove('visible');
     app.classList.add('is-transitioning');
     await new Promise((resolve) => window.setTimeout(resolve, DREAM_TUNING.TRANSITION_MS));
@@ -490,6 +491,7 @@ function revealElementImmediately(node) {
 }
 
 function useRevealOnce() {
+  if (document.querySelector('.page--writing-detail')) return;
   const registry = window.AnimationRegistry;
   const nodes = document.querySelectorAll('[data-anim-key]');
   if (!nodes.length) return;

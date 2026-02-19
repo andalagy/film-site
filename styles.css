@@ -600,6 +600,23 @@ main {
   overflow: hidden;
 }
 
+.writing-excerpt {
+  margin: 0.45rem 0 0;
+  opacity: 0.65;
+  font-size: 0.88rem;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.writing-excerpt--detail {
+  margin: 0.7rem 0 1rem;
+  font-size: 0.95rem;
+  max-width: 68ch;
+}
+
 .focus-breath {
   animation: headingBreath 2.4s ease both;
 }
@@ -702,6 +719,22 @@ main {
   border-radius: 12px;
   padding: clamp(1rem, 2.3vw, 1.6rem);
   background: linear-gradient(180deg, rgba(20, 22, 27, 0.94), rgba(14, 15, 18, 0.95));
+}
+
+.page--writing-detail *,
+.page--writing-detail *::before,
+.page--writing-detail *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+.page--writing-detail .reveal,
+.page--writing-detail [data-reveal],
+.page--writing-detail .pre-reveal,
+.page--writing-detail .is-revealed {
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
 }
 
 .cursor {
