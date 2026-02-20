@@ -45,6 +45,13 @@ body {
   overflow-x: hidden;
 }
 
+body.is-scroll-locked {
+  position: fixed;
+  left: 0;
+  right: 0;
+  width: 100%;
+}
+
 
 .dream-stack,
 .dream-stack > div {

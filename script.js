@@ -73,6 +73,8 @@ const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').match
 let ambientRaf = 0;
 let fogRaf = 0;
 let routeTransitionToken = 0;
+let scrollLockY = 0;
+let isScrollLocked = false;
 let headingBreathObserver = null;
 let memorySubtitleObserver = null;
 let memorySubtitleFadeTimeout = 0;
@@ -386,17 +388,24 @@ window.AppUtils = {
   logDev
 };
 
-async function render() {
+async function render(options = {}) {
+  const scrollMode = options.scrollMode || 'preserve';
   const currentToken = ++routeTransitionToken;
   if (!app) return;
   const route = routeFromLocation();
 
   const runTransition = !reduceMotion;
-  if (runTransition && route.page !== 'writing' && app.innerHTML.trim()) {
+  const canTransition = runTransition && app.innerHTML.trim();
+
+  if (canTransition) {
+    lockScrollForTransition();
     app.classList.remove('visible');
     app.classList.add('is-transitioning');
     await new Promise((resolve) => window.setTimeout(resolve, DREAM_TUNING.TRANSITION_MS));
-    if (currentToken !== routeTransitionToken) return;
+    if (currentToken !== routeTransitionToken) {
+      unlockScrollAfterTransition();
+      return;
+    }
   }
 
   let html = '';
@@ -415,10 +424,42 @@ async function render() {
     if (currentToken !== routeTransitionToken) return;
     app.classList.remove('is-transitioning');
     app.classList.add('visible');
+    unlockScrollAfterTransition();
+    applyPostMountScroll(scrollMode);
   });
+}
 
-  if (window.location.hash === '#about') scrollToAnchorId('about');
-  if (window.location.hash === '#films') scrollToAnchorId('films');
+function lockScrollForTransition() {
+  if (isScrollLocked) return;
+  scrollLockY = window.scrollY || window.pageYOffset || 0;
+  const scrollbarCompensation = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
+  document.body.classList.add('is-scroll-locked');
+  document.body.style.top = `-${scrollLockY}px`;
+  if (scrollbarCompensation > 0) {
+    document.body.style.paddingRight = `${scrollbarCompensation}px`;
+  }
+  isScrollLocked = true;
+}
+
+function unlockScrollAfterTransition() {
+  if (!isScrollLocked) return;
+  document.body.classList.remove('is-scroll-locked');
+  document.body.style.top = '';
+  document.body.style.paddingRight = '';
+  isScrollLocked = false;
+  window.scrollTo({ top: scrollLockY, behavior: 'auto' });
+}
+
+function applyPostMountScroll(scrollMode = 'preserve') {
+  if (scrollMode === 'top') {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    return;
+  }
+
+  if (scrollMode !== 'hash') return;
+  const anchorId = (window.location.hash || '').replace(/^#/, '');
+  if (!anchorId) return;
+  scrollToAnchorId(anchorId);
 }
 
 function scrollToAnchorId(id, attempt = 0) {
@@ -629,14 +670,18 @@ function replaceEmbedWithFallback(wrap, film, reason) {
 }
 
 function setupNavigation() {
+  const navigateTo = (path, options = {}) => {
+    const hash = options.hash || '';
+    history.pushState({}, '', toUrl(path, hash));
+    render({ scrollMode: options.scrollMode || 'top' });
+  };
+
   document.body.addEventListener('click', (event) => {
     const link = event.target.closest('[data-link]');
     if (link) {
       event.preventDefault();
       const path = link.getAttribute('data-link') || '/';
-      history.pushState({}, '', toUrl(path));
-      window.scrollTo({ top: 0, behavior: 'auto' });
-      render();
+      navigateTo(path, { scrollMode: 'top' });
       return;
     }
 
@@ -649,11 +694,13 @@ function setupNavigation() {
       return;
     }
 
-    history.pushState({}, '', toUrl('/', '#about'));
-    render();
+    navigateTo('/', { hash: '#about', scrollMode: 'hash' });
   });
 
-  window.addEventListener('popstate', render);
+  window.addEventListener('popstate', () => {
+    const scrollMode = window.location.hash ? 'hash' : 'top';
+    render({ scrollMode });
+  });
 }
 
 function setupCursor() {
@@ -1085,4 +1132,4 @@ setupFogRevealTracking();
 setupFloatingTextLayer();
 setupFilmGateFlicker();
 window.addEventListener('scroll', () => window.requestAnimationFrame(applyScrollDissolve), { passive: true });
-render();
+render({ scrollMode: window.location.hash ? 'hash' : 'preserve' });
