@@ -82,6 +82,7 @@ let revealOnceObserver = null;
 let activeMemoryLine = '';
 let filmGateTimer = 0;
 let floatingTextNearTimer = 0;
+let isSlateCollapsed = false;
 const animationSeenKeys = new Set();
 const animationRegistry = {
   hasSeen(key) {
@@ -336,7 +337,7 @@ function aboutBlock() {
 function homeView() {
   const shown = FILMS.slice(0, 4);
   const shownWritings = WRITINGS.slice(0, 4);
-  return `<section class="slate-wrap" id="slate" data-anim-key="home:slate:wrap" data-reveal="section">
+  return `<section class="slate-wrap${isSlateCollapsed ? ' is-collapsed' : ''}" id="slate" data-slate-wrap data-anim-key="home:slate:wrap" data-reveal="section">
       <article class="slate" data-slate data-anim-key="home:slate:hero" data-reveal="hero">
         <span class="slate-glow" aria-hidden="true"></span>
         <h1 data-glitch="andrew yan" data-anim-key="home:slate:heading" data-reveal="heading">andrew yan</h1>
@@ -344,13 +345,16 @@ function homeView() {
         <p data-anim-key="home:slate:line" data-reveal="text">the world forgetting, the world forgot.</p>
         ${slateMetaMarkup()}
       </article>
+      <h1 class="slate-wordmark" data-slate-wordmark aria-hidden="${isSlateCollapsed ? 'false' : 'true'}">andalagy</h1>
     </section>
     <section id="films" class="home-films" data-anim-key="home:films:section" data-reveal="section">
       <div class="heading-row">
         <h2 data-breath-heading data-anim-key="home:films:heading" data-reveal="heading">films</h2>
       </div>
       <div class="film-grid" data-anim-key="home:films:grid" data-reveal="section">${shown.map(filmCard).join('')}</div>
-      <a class="quiet-btn section-cta" href="${toUrl('/films')}" data-link="/films" data-anim-key="home:films:cta" data-reveal="link">${LIST_CTA_LABEL} →</a>
+      <div class="section-cta-row">
+        <a class="quiet-btn section-cta" href="${toUrl('/films')}" data-link="/films" data-anim-key="home:films:cta" data-reveal="link">${LIST_CTA_LABEL} →</a>
+      </div>
     </section>
     <section class="home-writings" data-anim-key="home:writings:section" data-reveal="section">
       <div class="heading-row">
@@ -359,7 +363,9 @@ function homeView() {
       <div class="writing-grid" data-anim-key="home:writings:grid" data-reveal="section">
         ${shownWritings.map(writingCard).join('')}
       </div>
-      <a class="quiet-btn section-cta" href="${toUrl('/writings')}" data-link="/writings" data-anim-key="home:writings:cta" data-reveal="link">${LIST_CTA_LABEL} →</a>
+      <div class="section-cta-row">
+        <a class="quiet-btn section-cta" href="${toUrl('/writings')}" data-link="/writings" data-anim-key="home:writings:cta" data-reveal="link">${LIST_CTA_LABEL} →</a>
+      </div>
     </section>
     ${aboutBlock()}`;
 }
@@ -491,18 +497,17 @@ function clapSlateAndAdvanceMeta() {
   window.setTimeout(() => document.body.classList.remove('slate-flash'), reduceMotion ? 0 : 420);
 }
 
-function handleSlateInteract() {
+function handleSlateInteract(event) {
+  event?.preventDefault();
+  if (routeFromLocation().page !== 'home' || isSlateCollapsed) return;
+
   clapSlateAndAdvanceMeta();
+  isSlateCollapsed = true;
 
-  const proceed = () => window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
-  if (routeFromLocation().page === 'home') {
-    window.setTimeout(proceed, reduceMotion ? 0 : 420);
-    return;
-  }
-
-  history.pushState({}, '', toUrl('/'));
-  render();
-  window.setTimeout(proceed, reduceMotion ? 0 : 420);
+  const slateWrap = document.querySelector('[data-slate-wrap]');
+  const slateWordmark = document.querySelector('[data-slate-wordmark]');
+  slateWrap?.classList.add('is-collapsed');
+  if (slateWordmark) slateWordmark.setAttribute('aria-hidden', 'false');
 }
 
 function updateActiveNav(page) {

@@ -267,7 +267,52 @@ main {
 .route-fade.visible { opacity: 1; transform: translateY(0); }
 .route-fade.is-transitioning { opacity: 0; transform: translateY(-4px); filter: blur(4px); }
 
-.slate-wrap { min-height: 80svh; display: flex; align-items: center; justify-content: flex-start; padding-block: clamp(1rem, 3vh, 2rem); }
+.slate-wrap {
+  min-height: 80svh;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
+  padding-block: clamp(1rem, 3vh, 2rem);
+  transition: min-height 0.45s ease, padding 0.45s ease, gap 0.45s ease;
+}
+
+.slate-wordmark {
+  margin: 0;
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 500;
+  font-size: clamp(3rem, 12vw, 8rem);
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+  color: var(--text);
+  opacity: 0;
+  transform: translate3d(0, 12px, 0);
+  pointer-events: none;
+  transition: opacity 0.38s ease, transform 0.42s ease;
+}
+
+.slate-wrap.is-collapsed {
+  min-height: 0;
+  padding-block: 0;
+  gap: clamp(0.6rem, 1.4vw, 1rem);
+}
+
+.slate-wrap.is-collapsed .slate {
+  max-height: 0;
+  padding-block: 0;
+  border-width: 0;
+  opacity: 0;
+  transform: translate3d(0, -10px, 0);
+  overflow: hidden;
+  pointer-events: none;
+  transition: max-height 0.42s ease, opacity 0.3s ease, transform 0.4s ease, border-width 0.2s ease, padding 0.2s ease;
+}
+
+.slate-wrap.is-collapsed .slate-wordmark {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
 
 .slate[data-slate] { cursor: pointer; }
 
@@ -426,13 +471,21 @@ main {
 .quiet-btn:hover, .quiet-btn:focus-visible { background: rgba(255, 255, 255, 0.08); }
 
 .section-cta {
-  margin-top: 1.4rem;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
   padding: 0;
   border: 0;
   background: transparent;
   color: var(--muted);
   text-decoration: none;
   text-underline-offset: 0.2em;
+}
+
+.section-cta-row {
+  margin-top: 1.4rem;
+  display: flex;
+  justify-content: flex-start;
 }
 
 .section-cta:hover {
@@ -457,6 +510,10 @@ main {
 
 .home-films {
   margin-top: clamp(3.5rem, 8vh, 6rem);
+}
+
+.slate-wrap.is-collapsed + .home-films {
+  margin-top: clamp(1.4rem, 3vh, 2.4rem);
 }
 
 .home-films::before,
@@ -976,6 +1033,9 @@ body.slate-flash::after {
   .cursor-trail-dot, .film-gate, .dust-layer { display: none !important; }
   .memory-subtitle { transition: none; }
   .floating-text-snippet { transition: opacity 0.5s ease !important; }
+  .slate-wrap,
+  .slate-wrap.is-collapsed .slate,
+  .slate-wordmark { transition: none !important; }
 }
 
 @media (max-width: 900px) {
