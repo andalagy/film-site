@@ -14,6 +14,9 @@
       rel="stylesheet"
     />
     <script>
+      document.documentElement.classList.add('js-ready');
+    </script>
+    <script>
       (function (location) {
         if (location.search[1] !== '/') return;
         const decoded = location.search
@@ -27,6 +30,9 @@
     <link rel="stylesheet" href="/andalagy/styles.css" />
   </head>
   <body>
+    <div id="load-overlay" aria-hidden="true">
+      <p class="load-overlay-count" data-load-count>00:03</p>
+    </div>
     <div id="grain-layer" aria-hidden="true"></div>
     <div class="dream-stack" aria-hidden="true">
       <div class="ambient-base"></div>

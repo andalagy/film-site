@@ -5,6 +5,8 @@ const WRITINGS = Array.isArray(window.WRITINGS_DATA) ? window.WRITINGS_DATA : []
 const LIST_CTA_LABEL = 'show more';
 const YOUTUBE_ID_REGEX = /^[A-Za-z0-9_-]{11}$/;
 const EMBED_LOAD_TIMEOUT_MS = 3200;
+const SESSION_LOAD_KEY = 'andalagy:load-overlay-played';
+const LOAD_TICKS = ['00:03', '00:02', '00:01'];
 const SLATE_META = {
   scene: '01',
   take: 4,
@@ -67,6 +69,7 @@ const app = document.querySelector('#app');
 const cursor = document.querySelector('.cursor');
 const dreamStack = document.querySelector('.dream-stack');
 const whisperLine = document.querySelector('[data-whisper]');
+const loadOverlay = document.querySelector('#load-overlay');
 const filmGate = document.querySelector('[data-film-gate]');
 const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -83,6 +86,7 @@ let activeMemoryLine = '';
 let filmGateTimer = 0;
 let floatingTextNearTimer = 0;
 let isSlateCollapsed = false;
+let modeWhisperTimer = 0;
 const animationSeenKeys = new Set();
 const animationRegistry = {
   hasSeen(key) {
@@ -674,6 +678,78 @@ function replaceEmbedWithFallback(wrap, film, reason) {
   ratio.innerHTML = filmFallbackView(film, reason);
 }
 
+function showModeWhisper(message) {
+  if (!message) return;
+  let node = document.querySelector('[data-mode-whisper]');
+  if (!node) {
+    node = document.createElement('div');
+    node.className = 'mode-whisper';
+    node.dataset.modeWhisper = '1';
+    node.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(node);
+  }
+  window.clearTimeout(modeWhisperTimer);
+  node.textContent = lower(message);
+  node.classList.add('is-visible');
+  modeWhisperTimer = window.setTimeout(() => {
+    node.classList.remove('is-visible');
+  }, 760);
+}
+
+function resetViewModes({ silent = false } = {}) {
+  document.body.classList.remove('is-tight-grid', 'is-text-mode');
+  if (!silent) showModeWhisper('mode: default');
+}
+
+function setupHiddenShortcuts() {
+  document.addEventListener('keydown', (event) => {
+    const target = event.target;
+    if (target && (target.closest('input, textarea, select') || target.isContentEditable)) return;
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+
+    const key = lower(event.key);
+    if (key === 'g') {
+      document.body.classList.toggle('is-tight-grid');
+      showModeWhisper(`grid: ${document.body.classList.contains('is-tight-grid') ? 'tight' : 'normal'}`);
+      return;
+    }
+
+    if (key === 't') {
+      document.body.classList.toggle('is-text-mode');
+      showModeWhisper(`mode: ${document.body.classList.contains('is-text-mode') ? 'text' : 'normal'}`);
+      return;
+    }
+
+    if (key === 'escape') {
+      resetViewModes();
+    }
+  });
+}
+
+function runSessionLoadOverlay() {
+  if (!loadOverlay) return;
+  const countNode = loadOverlay.querySelector('[data-load-count]');
+  const hasPlayed = sessionStorage.getItem(SESSION_LOAD_KEY) === '1';
+
+  if (reduceMotion || hasPlayed) {
+    loadOverlay.classList.add('is-hidden');
+    window.setTimeout(() => loadOverlay.remove(), 240);
+    return;
+  }
+
+  if (countNode) {
+    countNode.textContent = LOAD_TICKS[0];
+    window.setTimeout(() => { countNode.textContent = LOAD_TICKS[1]; }, 340);
+    window.setTimeout(() => { countNode.textContent = LOAD_TICKS[2]; }, 680);
+  }
+
+  window.setTimeout(() => {
+    loadOverlay.classList.add('is-hidden');
+    sessionStorage.setItem(SESSION_LOAD_KEY, '1');
+    window.setTimeout(() => loadOverlay.remove(), 260);
+  }, 1080);
+}
+
 function setupNavigation() {
   const navigateTo = (path, options = {}) => {
     const hash = options.hash || '';
@@ -1130,11 +1206,13 @@ function applyScrollDissolve() {
 }
 
 setupNavigation();
+setupHiddenShortcuts();
 setupCursor();
 setupAmbientSeed();
 setupAmbientDrift();
 setupFogRevealTracking();
 setupFloatingTextLayer();
 setupFilmGateFlicker();
+runSessionLoadOverlay();
 window.addEventListener('scroll', () => window.requestAnimationFrame(applyScrollDissolve), { passive: true });
 render({ scrollMode: window.location.hash ? 'hash' : 'preserve' });
