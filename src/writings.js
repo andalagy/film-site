@@ -5,37 +5,23 @@ export const writings = [
     excerpt: "lull. a poem.",
     year: 2024,
     content: `Alcyonacea
-
 Sway on a gray cradle
-
 Rocked by the ocean’s arms.
 
-
 Coral rocks sway soft
-
 Clownfish dance in cradle's arms
-
 Waves hum lullabies.
 
-
 Below, shadows drift
-
 A ballet of light and dark
-
 Secrets of the deep.
 
-
 Corals, they bloom
-
 Growing under ocean’s care
-
 Painting hidden worlds.
 
-
 Eternal rhythm,
-
 Ocean cradles ancient dreams
-
 Time flows, and it sleeps.`
   },
   {
@@ -44,61 +30,33 @@ Time flows, and it sleeps.`
     excerpt: "three objects.",
     year: 2024,
     content: `In the corner of the abandoned study sat three things.
-
 A black porcelain vase, chipped and cold.
-
 A glass ink bottle, its contents thick as dried blood.
-
 And a copy of the book, its cover cracked, its pages stained with age.
-
 By day, the room was silent.
-
 The vase reflected nothing.
-
 The ink bottle clung to its shadows.
-
 The book waited.
-
 At night, when the house sank into silence, the whispers began.
-
 The vase spoke first.
-
 “Another failure,” it said, voice hollow. “The boy fears us.”
-
 The ink bottle trembled, its black surface trembling like a ripple in dark water.
-
 “Fear feeds him. Fear feeds me.”
-
 The book laughed—a dry, brittle sound like paper tearing.
-
 “Fear is the first offering. Knowledge is the second. Both will be taken.”
-
 One night, the boy returned.
-
 His hands shook as they brushed the book’s rough cover.
-
 The room tightened around him, air sharp as a blade.
-
 The black vase filled with a black light.
-
 The ink bottle pulsed, full again, thick and alive.
-
 The book opened itself, pages fluttering to a chapter on the decay of balance.
-
 He wrote until his fingers cramped and bled.
-
 The ink never ran out.
-
 The shadows never blinked.
-
 By dawn, the desk was wet with spilled ink—or something darker.
-
 The boy’s head lay on the cold wood, lips parted in a silent prayer.
-
 The vase stood still.
-
 The ink bottle was empty.
-
 And the book pulsed faintly, like a living heart, waiting for the next night.`
   },
   {
@@ -360,14 +318,23 @@ Just the faint hum of something waiting, somewhere above the ceiling, for anyone
     excerpt: "i also never should’ve taken that job.",
     year: 2024,
     content: `I also never should’ve taken that job.
+	
 But when you’re broke, fresh out of college, and barely scraping rent, even a night shift security gig at an abandoned hospital starts to sound like a blessing.
+
 “Just walk the halls twice a night,” the supervisor said, handing me a jangling set of keys. “Don't go near the west wing. It’s under renovation. You’ll set off the alarms.”
+
 He didn’t smile. Not even a little. And he didn’t make eye contact when he said it.
+
 The first night, everything was still. Too still.
+
 No lights on except the flickering ones in the lobby. The elevator didn’t work. My footsteps echoed so loud they sounded like someone else was walking with me.
+
  I kept hearing the hum of machines that shouldn’t be running.
+ 
 In the silence, my mind started to wander.
+
 Why not the west wing?
+
 What’s behind that sealed door on the third floor? Room 413?
 
 The second night, I heard the whispering.
