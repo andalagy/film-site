@@ -1097,14 +1097,6 @@ function setupAmbientSeed() {
   root.style.setProperty('--leak-b-y', `${(Math.random() * 75).toFixed(2)}%`);
   root.style.setProperty('--leak-a-delay', `${(Math.random() * -30).toFixed(2)}s`);
   root.style.setProperty('--leak-b-delay', `${(Math.random() * -32).toFixed(2)}s`);
-  root.style.setProperty('--breath-a-duration', `${(26 + (Math.random() * 24)).toFixed(2)}s`);
-  root.style.setProperty('--breath-b-duration', `${(34 + (Math.random() * 26)).toFixed(2)}s`);
-  root.style.setProperty('--breath-c-duration', `${(22 + (Math.random() * 20)).toFixed(2)}s`);
-  root.style.setProperty('--breath-a-delay', `${(Math.random() * -30).toFixed(2)}s`);
-  root.style.setProperty('--breath-b-delay', `${(Math.random() * -34).toFixed(2)}s`);
-  root.style.setProperty('--breath-c-delay', `${(Math.random() * -38).toFixed(2)}s`);
-  root.style.setProperty('--burn-duration', `${(65 + (Math.random() * 52)).toFixed(2)}s`);
-  root.style.setProperty('--burn-delay', `${(Math.random() * -70).toFixed(2)}s`);
 }
 
 function setupAmbientDrift() {
@@ -1214,7 +1206,6 @@ function applyScrollDissolve() {
 }
 
 setupNavigation();
-document.body.classList.toggle('is-reduced-motion', reduceMotion);
 setupHiddenShortcuts();
 setupCursor();
 setupAmbientSeed();
