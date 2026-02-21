@@ -761,19 +761,6 @@ main {
 }
 
 
-.tile-year {
-  position: absolute;
-  top: 0.65rem;
-  left: 0.75rem;
-  z-index: 2;
-  margin: 0;
-  font-size: 0.74rem;
-  line-height: 1;
-  color: rgba(243, 240, 234, 0.7);
-  letter-spacing: 0.02em;
-  pointer-events: none;
-}
-
 .work-title--in-tile {
   position: absolute;
   left: 0.8rem;
@@ -825,10 +812,11 @@ main {
 
 
 .writing-year {
-  margin: 0.4rem 0 0.25rem;
-  font-size: 0.82rem;
+  margin: 0 0 1.1rem;
+  font-size: 0.78rem;
   line-height: 1.2;
-  color: rgba(228, 224, 216, 0.66);
+  color: rgba(228, 224, 216, 0.6);
+  letter-spacing: 0.02em;
 }
 
 .focus-breath {
