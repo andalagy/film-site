@@ -6,7 +6,21 @@ const LIST_CTA_LABEL = 'show more';
 const YOUTUBE_ID_REGEX = /^[A-Za-z0-9_-]{11}$/;
 const EMBED_LOAD_TIMEOUT_MS = 3200;
 const SESSION_LOAD_KEY = 'andalagy:load-overlay-played';
-const LOAD_TICKS = ['00:03', '00:02', '00:01'];
+const LOAD_WORDMARK = 'andalagy';
+const INTRO_TIMINGS = {
+  standard: {
+    beatA: 1700,
+    beatB: 1200,
+    beatC: 1400,
+    fadeOut: 340
+  },
+  reduced: {
+    beatA: 380,
+    beatB: 0,
+    beatC: 420,
+    fadeOut: 180
+  }
+};
 const SLATE_META = {
   scene: '01',
   take: 4,
@@ -42,7 +56,7 @@ const DREAM_TUNING = {
   },
   MOTE_COUNT: [10, 22],
   FLICKER_OPACITY: [0.08, 0.16],
-  TRANSITION_MS: 540
+  TRANSITION_MS: 620
 };
 
 
@@ -659,24 +673,75 @@ function runSessionLoadOverlay() {
   if (!loadOverlay) return;
   const countNode = loadOverlay.querySelector('[data-load-count]');
   const hasPlayed = sessionStorage.getItem(SESSION_LOAD_KEY) === '1';
+  const timings = reduceMotion ? INTRO_TIMINGS.reduced : INTRO_TIMINGS.standard;
+  const timeline = [];
+  let introFinished = false;
 
-  if (reduceMotion || hasPlayed) {
+  const clearTimeline = () => {
+    while (timeline.length) {
+      window.clearTimeout(timeline.pop());
+    }
+  };
+
+  const removeSkipHandlers = () => {
+    document.removeEventListener('click', handleSkip, true);
+    window.removeEventListener('keydown', handleSkipKey, true);
+  };
+
+  const teardown = (removeDelay = timings.fadeOut + 40) => {
+    clearTimeline();
+    removeSkipHandlers();
+    timeline.push(window.setTimeout(() => loadOverlay.remove(), removeDelay));
+  };
+
+  const finishIntro = (skipped = false) => {
+    if (introFinished) return;
+    introFinished = true;
+    loadOverlay.classList.remove('beat-a', 'beat-b', 'beat-c');
+    loadOverlay.classList.add('is-hidden');
+    sessionStorage.setItem(SESSION_LOAD_KEY, '1');
+    teardown(skipped ? 160 : timings.fadeOut + 40);
+  };
+
+  const handleSkip = () => finishIntro(true);
+  const handleSkipKey = (event) => {
+    if (!['Escape', 'Enter', ' ', 'Spacebar'].includes(event.key)) return;
+    event.preventDefault();
+    finishIntro(true);
+  };
+
+  if (hasPlayed) {
     loadOverlay.classList.add('is-hidden');
     window.setTimeout(() => loadOverlay.remove(), 240);
     return;
   }
 
   if (countNode) {
-    countNode.textContent = LOAD_TICKS[0];
-    window.setTimeout(() => { countNode.textContent = LOAD_TICKS[1]; }, 340);
-    window.setTimeout(() => { countNode.textContent = LOAD_TICKS[2]; }, 680);
+    countNode.textContent = LOAD_WORDMARK;
   }
 
-  window.setTimeout(() => {
-    loadOverlay.classList.add('is-hidden');
-    sessionStorage.setItem(SESSION_LOAD_KEY, '1');
-    window.setTimeout(() => loadOverlay.remove(), 260);
-  }, 1080);
+  loadOverlay.classList.remove('is-hidden', 'beat-b', 'beat-c');
+  loadOverlay.classList.add('beat-a');
+
+  document.addEventListener('click', handleSkip, true);
+  window.addEventListener('keydown', handleSkipKey, true);
+
+  timeline.push(
+    window.setTimeout(() => {
+      if (!timings.beatB) return;
+      loadOverlay.classList.remove('beat-a');
+      loadOverlay.classList.add('beat-b');
+    }, timings.beatA)
+  );
+
+  timeline.push(
+    window.setTimeout(() => {
+      loadOverlay.classList.remove('beat-a', 'beat-b');
+      loadOverlay.classList.add('beat-c');
+    }, timings.beatA + timings.beatB)
+  );
+
+  timeline.push(window.setTimeout(() => finishIntro(false), timings.beatA + timings.beatB + timings.beatC));
 }
 
 function setupNavigation() {
