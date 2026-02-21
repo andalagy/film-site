@@ -42,7 +42,7 @@ const DREAM_TUNING = {
   },
   MOTE_COUNT: [10, 22],
   FLICKER_OPACITY: [0.08, 0.16],
-  TRANSITION_MS: 560
+  TRANSITION_MS: 540
 };
 
 
@@ -76,8 +76,6 @@ const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').match
 let ambientRaf = 0;
 let fogRaf = 0;
 let routeTransitionToken = 0;
-let scrollLockY = 0;
-let isScrollLocked = false;
 let headingBreathObserver = null;
 let memorySubtitleObserver = null;
 let memorySubtitleFadeTimeout = 0;
@@ -86,7 +84,6 @@ let activeMemoryLine = '';
 let filmGateTimer = 0;
 let floatingTextNearTimer = 0;
 let isSlateCollapsed = false;
-let modeWhisperTimer = 0;
 const animationSeenKeys = new Set();
 const animationRegistry = {
   hasSeen(key) {
@@ -408,12 +405,10 @@ async function render(options = {}) {
   const canTransition = runTransition && app.innerHTML.trim();
 
   if (canTransition) {
-    lockScrollForTransition();
-    app.classList.remove('visible');
-    app.classList.add('is-transitioning');
+    app.classList.remove('visible', 'is-entering');
+    app.classList.add('is-exiting');
     await new Promise((resolve) => window.setTimeout(resolve, DREAM_TUNING.TRANSITION_MS));
     if (currentToken !== routeTransitionToken) {
-      unlockScrollAfterTransition();
       return;
     }
   }
@@ -432,32 +427,14 @@ async function render(options = {}) {
 
   requestAnimationFrame(() => {
     if (currentToken !== routeTransitionToken) return;
-    app.classList.remove('is-transitioning');
-    app.classList.add('visible');
-    unlockScrollAfterTransition();
+    app.classList.remove('is-exiting');
+    app.classList.add('is-entering');
+    requestAnimationFrame(() => {
+      if (currentToken !== routeTransitionToken) return;
+      app.classList.add('visible');
+    });
     applyPostMountScroll(scrollMode);
   });
-}
-
-function lockScrollForTransition() {
-  if (isScrollLocked) return;
-  scrollLockY = window.scrollY || window.pageYOffset || 0;
-  const scrollbarCompensation = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
-  document.body.classList.add('is-scroll-locked');
-  document.body.style.top = `-${scrollLockY}px`;
-  if (scrollbarCompensation > 0) {
-    document.body.style.paddingRight = `${scrollbarCompensation}px`;
-  }
-  isScrollLocked = true;
-}
-
-function unlockScrollAfterTransition() {
-  if (!isScrollLocked) return;
-  document.body.classList.remove('is-scroll-locked');
-  document.body.style.top = '';
-  document.body.style.paddingRight = '';
-  isScrollLocked = false;
-  window.scrollTo({ top: scrollLockY, behavior: 'auto' });
 }
 
 function applyPostMountScroll(scrollMode = 'preserve') {
@@ -676,54 +653,6 @@ function replaceEmbedWithFallback(wrap, film, reason) {
   const ratio = wrap.querySelector('.player-ratio');
   if (!ratio) return;
   ratio.innerHTML = filmFallbackView(film, reason);
-}
-
-function showModeWhisper(message) {
-  if (!message) return;
-  let node = document.querySelector('[data-mode-whisper]');
-  if (!node) {
-    node = document.createElement('div');
-    node.className = 'mode-whisper';
-    node.dataset.modeWhisper = '1';
-    node.setAttribute('aria-hidden', 'true');
-    document.body.appendChild(node);
-  }
-  window.clearTimeout(modeWhisperTimer);
-  node.textContent = lower(message);
-  node.classList.add('is-visible');
-  modeWhisperTimer = window.setTimeout(() => {
-    node.classList.remove('is-visible');
-  }, 760);
-}
-
-function resetViewModes({ silent = false } = {}) {
-  document.body.classList.remove('is-tight-grid', 'is-text-mode');
-  if (!silent) showModeWhisper('mode: default');
-}
-
-function setupHiddenShortcuts() {
-  document.addEventListener('keydown', (event) => {
-    const target = event.target;
-    if (target && (target.closest('input, textarea, select') || target.isContentEditable)) return;
-    if (event.metaKey || event.ctrlKey || event.altKey) return;
-
-    const key = lower(event.key);
-    if (key === 'g') {
-      document.body.classList.toggle('is-tight-grid');
-      showModeWhisper(`grid: ${document.body.classList.contains('is-tight-grid') ? 'tight' : 'normal'}`);
-      return;
-    }
-
-    if (key === 't') {
-      document.body.classList.toggle('is-text-mode');
-      showModeWhisper(`mode: ${document.body.classList.contains('is-text-mode') ? 'text' : 'normal'}`);
-      return;
-    }
-
-    if (key === 'escape') {
-      resetViewModes();
-    }
-  });
 }
 
 function runSessionLoadOverlay() {
@@ -1206,7 +1135,6 @@ function applyScrollDissolve() {
 }
 
 setupNavigation();
-setupHiddenShortcuts();
 setupCursor();
 setupAmbientSeed();
 setupAmbientDrift();
