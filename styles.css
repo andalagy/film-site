@@ -945,6 +945,16 @@ main {
 .film-fallback-copy p { margin: 0; }
 .film-fallback-copy .quiet-btn { display: inline-block; margin-top: 0.7rem; }
 
+.detail-meta-static,
+.detail-meta-static .meta,
+.detail-meta-static .meta-item {
+  opacity: 1 !important;
+  transform: translate3d(0, 0, 0) !important;
+  filter: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
 .writing-detail article {
   max-width: 68ch;
   border: 1px solid var(--line);

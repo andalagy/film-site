@@ -565,6 +565,10 @@ function useRevealOnce() {
   );
 
   nodes.forEach((node) => {
+    if (node.closest('[data-no-reveal]')) {
+      revealElementImmediately(node);
+      return;
+    }
     const variant = node.dataset.reveal || 'section';
     node.classList.add('reveal', `reveal--${variant}`);
     const finalized = revealOrFinalize(node);

@@ -15,7 +15,6 @@
     const year = Number.isFinite(Number(item.year)) ? Number(item.year) : null;
 
     return `<section class="page-section writing-detail page page--writing-detail">
-      <a class="back-link" href="${window.AppUtils.toUrl('/writings')}" data-link="/writings">back</a>
       <h1>${window.AppUtils.lower(item.title)}</h1>
       ${year ? `<p class="writing-year" aria-label="${year}">${year}</p>` : ''}
       <p class="writing-excerpt writing-excerpt--detail">${window.AppUtils.lower(item.excerpt)}</p>

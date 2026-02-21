@@ -13,7 +13,6 @@
     window.AppUtils.logDev('render detail', { id: cleanId, embedSrc, validId });
 
     return `<section class="page-section detail" data-anim-key="film:${cleanId}:section" data-reveal="section">
-      <a class="back-link" href="${window.AppUtils.toUrl('/films')}" data-link="/films" data-anim-key="film:${cleanId}:back" data-reveal="link">back</a>
       <div class="player-wrap" data-player-wrap data-film-id="${cleanId}" data-state="${validId ? 'embed' : 'fallback'}" data-anim-key="film:${cleanId}:player" data-reveal="section">
         <div class="player-ratio">
           ${
@@ -27,7 +26,9 @@
       </div>
       <h1 data-anim-key="film:${cleanId}:title" data-reveal="heading">${window.AppUtils.lower(film.title)}</h1>
       <p data-anim-key="film:${cleanId}:statement" data-reveal="text">${window.AppUtils.lower(film.statement)}</p>
-      <p class="meta" data-anim-key="film:${cleanId}:meta" data-reveal="text">${window.AppUtils.lower(film.year)} · ${window.AppUtils.lower(film.runtime)} · ${window.AppUtils.lower(film.role)}</p>
+      <div class="detail-meta-static" data-no-reveal>
+        <p class="meta"><span class="meta-item">${window.AppUtils.lower(film.year)}</span> · <span class="meta-item">${window.AppUtils.lower(film.runtime)}</span> · <span class="meta-item">${window.AppUtils.lower(film.role)}</span></p>
+      </div>
     </section>`;
   }
 
