@@ -21,7 +21,7 @@
       youtubeId: '-vp76Gp6zoI',
       title: 'bohemian rhapsody',
       year: '2025',
-      runtime: '15 min',
+      runtime: '5 min',
       role: 'director',
       statement: 'a music piece shaped as memory.'
     },
