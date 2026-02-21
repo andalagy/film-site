@@ -301,9 +301,11 @@ function writingCard(item, index = 0) {
   const sliceIndexDesktop = ((index % 4) + 4) % 4;
   const sliceIndexTablet = ((index % 2) + 2) % 2;
   const coverImage = item.cover || item.coverImage || WRITINGS_HERO_IMAGE;
+  const year = Number.isFinite(Number(item.year)) ? String(Number(item.year)) : '';
   const mediaMarkup = `<div class="writing-composite-cover" aria-hidden="true" style="--slice-index-4:${sliceIndexDesktop};--slice-index-2:${sliceIndexTablet};--writings-hero-image:${coverImage};">
       <span class="writing-haze"></span>
-    </div>`;
+    </div>
+    ${year ? `<span class="tile-year" aria-label="${year}">${year}</span>` : ''}`;
 
   return workCard({
     href: writingPath,

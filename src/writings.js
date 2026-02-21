@@ -3,6 +3,7 @@ export const writings = [
     slug: "lull",
     title: "lull",
     excerpt: "lull. a poem.",
+    year: 2024,
     content: `Alcyonacea
 
 Sway on a gray cradle
@@ -41,6 +42,7 @@ Time flows, and it sleeps.`
     slug: "the-ink-the-bottle-and-the-book",
     title: "the ink, the bottle, and the book",
     excerpt: "three objects.",
+    year: 2024,
     content: `In the corner of the abandoned study sat three things.
 
 A black porcelain vase, chipped and cold.
@@ -103,6 +105,7 @@ And the book pulsed faintly, like a living heart, waiting for the next night.`
     slug: "a-b-c",
     title: "a, b, c.",
     excerpt: "a simple conversation between three people.",
+    year: 2025,
     content: `A:
 It’s heavier when you don’t look at it.
 
@@ -278,6 +281,7 @@ And who gets to keep it.`
     slug: "keep-calm-and-carry-on",
     title: "keep calm and carry on",
     excerpt: "just keep calm.",
+    year: 2024,
     content: `So where are you?
 
 You’re in someplace dark.
@@ -319,6 +323,7 @@ But it seems like you carried it far more.`
     slug: "the-man-in-the-hole",
     title: "the man in the hole",
     excerpt: "i guess he is just in the hole",
+    year: 2025,
     content: `No one expected to find a man halfway through the ceiling that morning.
 
 His boots dangled like ornaments, bits of pink insulation floating down like cherry blossoms in spring.
@@ -353,6 +358,7 @@ Just the faint hum of something waiting, somewhere above the ceiling, for anyone
     slug: "room-413",
     title: "room 413",
     excerpt: "i also never should’ve taken that job.",
+    year: 2024,
     content: `I also never should’ve taken that job.
 But when you’re broke, fresh out of college, and barely scraping rent, even a night shift security gig at an abandoned hospital starts to sound like a blessing.
 “Just walk the halls twice a night,” the supervisor said, handing me a jangling set of keys. “Don't go near the west wing. It’s under renovation. You’ll set off the alarms.”
@@ -418,6 +424,8 @@ And the whispering is getting louder.
 	Do Not Open Under Any Circumstances.`
   }
 ];
+
+writings.sort((a, b) => (Number(b.year) || 0) - (Number(a.year) || 0));
 
 if (typeof window !== "undefined") {
   window.WRITINGS_DATA = writings;
