@@ -6,18 +6,30 @@ const LIST_CTA_LABEL = 'show more';
 const YOUTUBE_ID_REGEX = /^[A-Za-z0-9_-]{11}$/;
 const EMBED_LOAD_TIMEOUT_MS = 3200;
 const SESSION_LOAD_KEY = 'andalagy:load-overlay-played';
-const LOAD_WORDMARK = 'andalagy';
+const TERMINAL_BOOT_LINES = [
+  'andalagy runtime v0.1',
+  'initializing scene graph...',
+  'mounting routes...',
+  'loading film index...',
+  'loading writing index...',
+  'binding cursor...',
+  'applying grain layer...',
+  'handshake: ok',
+  'simulation ready'
+];
 const INTRO_TIMINGS = {
   standard: {
-    beatA: 1700,
-    beatB: 1200,
-    beatC: 1400,
-    fadeOut: 340
+    lineStep: 420,
+    promptDelay: 340,
+    flashDelay: 360,
+    flashDuration: 120,
+    fadeOut: 380
   },
   reduced: {
-    beatA: 380,
-    beatB: 0,
-    beatC: 420,
+    lineStep: 170,
+    promptDelay: 160,
+    flashDelay: 200,
+    flashDuration: 90,
     fadeOut: 180
   }
 };
@@ -673,7 +685,8 @@ function replaceEmbedWithFallback(wrap, film, reason) {
 
 function runSessionLoadOverlay() {
   if (!loadOverlay) return;
-  const countNode = loadOverlay.querySelector('[data-load-count]');
+  const outputNode = loadOverlay.querySelector('[data-intro-output]');
+  const promptNode = loadOverlay.querySelector('[data-intro-prompt]');
   const hasPlayed = sessionStorage.getItem(SESSION_LOAD_KEY) === '1';
   const timings = reduceMotion ? INTRO_TIMINGS.reduced : INTRO_TIMINGS.standard;
   const timeline = [];
@@ -693,16 +706,23 @@ function runSessionLoadOverlay() {
   const teardown = (removeDelay = timings.fadeOut + 40) => {
     clearTimeline();
     removeSkipHandlers();
-    timeline.push(window.setTimeout(() => loadOverlay.remove(), removeDelay));
+    timeline.push(window.setTimeout(() => {
+      loadOverlay.classList.remove('is-flashing', 'is-dissolving');
+      loadOverlay.remove();
+    }, removeDelay));
   };
 
   const finishIntro = (skipped = false) => {
     if (introFinished) return;
     introFinished = true;
-    loadOverlay.classList.remove('beat-a', 'beat-b', 'beat-c');
-    loadOverlay.classList.add('is-hidden');
+    loadOverlay.classList.add('is-flashing');
     sessionStorage.setItem(SESSION_LOAD_KEY, '1');
-    teardown(skipped ? 160 : timings.fadeOut + 40);
+    const flashDuration = skipped ? 80 : timings.flashDuration;
+    timeline.push(window.setTimeout(() => {
+      loadOverlay.classList.remove('is-flashing');
+      loadOverlay.classList.add('is-dissolving', 'is-hidden');
+      teardown(skipped ? 220 : timings.fadeOut + 40);
+    }, flashDuration));
   };
 
   const handleSkip = () => finishIntro(true);
@@ -714,36 +734,44 @@ function runSessionLoadOverlay() {
 
   if (hasPlayed) {
     loadOverlay.classList.add('is-hidden');
-    window.setTimeout(() => loadOverlay.remove(), 240);
+    window.setTimeout(() => loadOverlay.remove(), 220);
     return;
   }
 
-  if (countNode) {
-    countNode.textContent = LOAD_WORDMARK;
+  if (outputNode) {
+    outputNode.innerHTML = '';
   }
 
-  loadOverlay.classList.remove('is-hidden', 'beat-b', 'beat-c');
-  loadOverlay.classList.add('beat-a');
+  if (promptNode) {
+    promptNode.hidden = true;
+  }
+
+  const linePrefix = '&gt; ';
+  const appendLine = (line) => {
+    if (!outputNode) return;
+    const row = document.createElement('p');
+    row.className = 'intro-terminal-line';
+    row.innerHTML = `${linePrefix}${line}`;
+    outputNode.append(row);
+  };
+
+  loadOverlay.classList.remove('is-hidden', 'is-flashing', 'is-dissolving');
 
   document.addEventListener('click', handleSkip, true);
   window.addEventListener('keydown', handleSkipKey, true);
 
-  timeline.push(
-    window.setTimeout(() => {
-      if (!timings.beatB) return;
-      loadOverlay.classList.remove('beat-a');
-      loadOverlay.classList.add('beat-b');
-    }, timings.beatA)
-  );
+  let cursor = timings.lineStep;
+  TERMINAL_BOOT_LINES.forEach((line) => {
+    timeline.push(window.setTimeout(() => appendLine(line), cursor));
+    cursor += timings.lineStep;
+  });
 
-  timeline.push(
-    window.setTimeout(() => {
-      loadOverlay.classList.remove('beat-a', 'beat-b');
-      loadOverlay.classList.add('beat-c');
-    }, timings.beatA + timings.beatB)
-  );
+  timeline.push(window.setTimeout(() => {
+    if (!promptNode) return;
+    promptNode.hidden = false;
+  }, cursor + timings.promptDelay));
 
-  timeline.push(window.setTimeout(() => finishIntro(false), timings.beatA + timings.beatB + timings.beatC));
+  timeline.push(window.setTimeout(() => finishIntro(false), cursor + timings.promptDelay + timings.flashDelay));
 }
 
 function setupNavigation() {
