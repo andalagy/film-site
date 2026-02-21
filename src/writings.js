@@ -348,6 +348,74 @@ And then one day, the legs were gone.
 No insulation, no hole, not even a scuff on the plaster.
 
 Just the faint hum of something waiting, somewhere above the ceiling, for anyone brave enough to take the next step.`
+  },
+  {
+    slug: "room-413",
+    title: "room 413",
+    excerpt: "i also never should’ve taken that job.",
+    content: `I also never should’ve taken that job.
+But when you’re broke, fresh out of college, and barely scraping rent, even a night shift security gig at an abandoned hospital starts to sound like a blessing.
+“Just walk the halls twice a night,” the supervisor said, handing me a jangling set of keys. “Don't go near the west wing. It’s under renovation. You’ll set off the alarms.”
+He didn’t smile. Not even a little. And he didn’t make eye contact when he said it.
+The first night, everything was still. Too still.
+No lights on except the flickering ones in the lobby. The elevator didn’t work. My footsteps echoed so loud they sounded like someone else was walking with me.
+ I kept hearing the hum of machines that shouldn’t be running.
+In the silence, my mind started to wander.
+Why not the west wing?
+What’s behind that sealed door on the third floor? Room 413?
+
+The second night, I heard the whispering.
+It started faint, like radio static.
+Then I made out words.
+“He's here.”
+“Don’t let him open it.”
+I froze in the stairwell.
+They don’t know I can hear them.
+That thought dug into me like a splinter.
+I walked faster—heart thumping, hands clammy, flashlight trembling.
+By the time I reached the third floor, the whispers had vanished. But as I passed Room 413, I noticed something new.
+The door was cracked open.
+The silver knob was gleaming.
+I didn’t touch it. I swear. I didn’t do anything. I was not a stupid, careless boy in a horror story.
+But inside the crack, something moved.
+A pale face. Sunken eyes. A mouth twisted in silent panic.
+I stumbled back.
+When I looked again, the door was closed.
+I reported it on the spot.
+The supervisor said, “You’re tired. That room’s sealed. It’s been empty since 1998. We keep it locked because—”
+He stopped.
+I waited for him to finish.
+He did not.
+The room seemed chillier than before. I wanted to press him, but my common sense told me I shouldn’t do that to my boss.
+So I left.
+The hallway outside the office was emptier than before, the dim overhead light flickering. That’s when I saw it—a dusty old bulletin board near the lobby, covered in brittle, yellowed notices.
+On it, a flyer.
+A missing person flyer.
+It had the same twisted mouth and hollowed eyes that stared back at me. The same ones that I saw in room 413.
+The date read: 1988.
+
+On the third night, I saw the cameras.
+They weren’t security cameras.
+They were old hospital monitors, grainy and gray, showing me the third floor in real time.
+Room 413 was open. Wide.
+And someone was inside, pacing, dragging one leg behind. Staring at the door like they were waiting for me.
+He turned to the camera.
+He waved.
+
+Tonight is night four.
+I got a voicemail from my manager.
+"GET OUT BEF—SSHHHHH—TIME’S AL—ZZZKKT—"
+I called out. 
+But my boss won’t answer anymore. The hospital line is disconnected.
+And the whispering is getting louder.
+
+	I keep telling myself that I won’t open the door.
+	But as I’m writing this very sentence, my hand is already turning the gleaming silver knob.
+
+	A dusty letter sat on an old, shabby desk in the office across the hall.
+	Room 413.
+	Psychiatric Isolation Order.
+	Do Not Open Under Any Circumstances.`
   }
 ];
 
