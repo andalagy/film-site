@@ -503,7 +503,6 @@ function clapSlateAndAdvanceMeta() {
 
 function handleSlateInteract(event) {
   event?.preventDefault();
-  event?.stopPropagation();
   if (routeFromLocation().page !== 'home' || isSlateCollapsed) return;
 
   clapSlateAndAdvanceMeta();
@@ -513,42 +512,6 @@ function handleSlateInteract(event) {
   const slateWordmark = document.querySelector('[data-slate-wordmark]');
   slateWrap?.classList.add('is-collapsed');
   if (slateWordmark) slateWordmark.setAttribute('aria-hidden', 'false');
-
-  ensureUnlockedScroll();
-  scrollHomeIntroToFilms();
-  window.setTimeout(() => scrollHomeIntroToFilms(), 140);
-}
-
-function ensureUnlockedScroll() {
-  unlockScrollAfterTransition();
-  document.body.classList.remove('is-scroll-locked');
-  document.body.style.top = '';
-  document.body.style.paddingRight = '';
-}
-
-function scrollHomeIntroToFilms(attempt = 0) {
-  const target = document.querySelector('#films');
-  if (target) {
-    const beforeY = window.scrollY || window.pageYOffset || 0;
-    target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
-    if (attempt < 1) {
-      window.setTimeout(() => {
-        const afterY = window.scrollY || window.pageYOffset || 0;
-        if (Math.abs(afterY - beforeY) < 4) {
-          const top = target.getBoundingClientRect().top + afterY;
-          window.scrollTo({ top, behavior: 'auto' });
-        }
-      }, 130);
-    }
-    return;
-  }
-
-  if (attempt < 1) {
-    window.setTimeout(() => scrollHomeIntroToFilms(attempt + 1), 100);
-    return;
-  }
-
-  window.scrollTo({ top: window.innerHeight, behavior: reduceMotion ? 'auto' : 'smooth' });
 }
 
 function updateActiveNav(page) {
@@ -622,9 +585,7 @@ function bindDynamicInteractions() {
   initYouTubeThumbnailFallbacks();
 
   const slate = document.querySelector('[data-slate]');
-  const slateWrap = document.querySelector('[data-slate-wrap]');
   slate?.addEventListener('click', handleSlateInteract);
-  slateWrap?.addEventListener('click', handleSlateInteract);
 
   const quote = document.querySelector('[data-pull-quote]');
   if (quote) quote.remove();
