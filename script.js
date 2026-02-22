@@ -683,6 +683,11 @@ function runSessionLoadOverlay() {
   let rafId = 0;
   let introFinished = false;
 
+  const keepLogPinnedToBottom = () => {
+    if (!outputNode) return;
+    outputNode.scrollTop = outputNode.scrollHeight;
+  };
+
   const clearTimeline = () => {
     while (timeline.length) {
       window.clearTimeout(timeline.pop());
@@ -696,6 +701,7 @@ function runSessionLoadOverlay() {
   const removeSkipHandlers = () => {
     document.removeEventListener('click', handleSkip, true);
     window.removeEventListener('keydown', handleSkipKey, true);
+    window.removeEventListener('resize', keepLogPinnedToBottom);
   };
 
   const teardown = (removeDelay = timings.fadeOut + 40) => {
@@ -740,6 +746,7 @@ function runSessionLoadOverlay() {
 
   if (outputNode) {
     outputNode.innerHTML = '';
+    keepLogPinnedToBottom();
   }
 
   if (promptNode) {
@@ -757,14 +764,7 @@ function runSessionLoadOverlay() {
       lineRegistry.set(key, row);
       row.dataset.introKey = key;
     }
-    while (outputNode.children.length > 28) {
-      const first = outputNode.firstElementChild;
-      if (!first) break;
-      const firstKey = first.getAttribute('data-intro-key');
-      if (firstKey) lineRegistry.delete(firstKey);
-      first.remove();
-    }
-    outputNode.scrollTop = outputNode.scrollHeight;
+    keepLogPinnedToBottom();
   };
 
   const updateLine = (key, line) => {
@@ -777,11 +777,12 @@ function runSessionLoadOverlay() {
   };
 
   const applyJitter = (amount = 1.6, duration = 48) => {
-    if (!outputNode) return;
-    outputNode.style.transform = `translateY(${(Math.random() - 0.5) * amount * 2}px)`;
+    if (!loadOverlay) return;
+    const shell = loadOverlay.querySelector('.intro-terminal-shell');
+    if (!shell) return;
+    shell.style.transform = `translateY(${(Math.random() - 0.5) * amount * 2}px)`;
     timeline.push(window.setTimeout(() => {
-      if (!outputNode) return;
-      outputNode.style.transform = 'translateY(0px)';
+      shell.style.transform = 'translateY(0px)';
     }, duration));
   };
 
@@ -789,6 +790,7 @@ function runSessionLoadOverlay() {
 
   document.addEventListener('click', handleSkip, true);
   window.addEventListener('keydown', handleSkipKey, true);
+  window.addEventListener('resize', keepLogPinnedToBottom);
 
   if (reduceMotion) {
     appendLine('andalagy runtime v0.2');
