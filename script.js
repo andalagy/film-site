@@ -53,7 +53,7 @@ const DREAM_TUNING = {
   },
   MOTE_COUNT: [10, 22],
   FLICKER_OPACITY: [0.08, 0.16],
-  TRANSITION_MS: 220
+  TRANSITION_MS: 620
 };
 
 
@@ -534,7 +534,7 @@ function useRevealOnce() {
     const key = node.dataset.animKey;
     const seen = registry?.hasSeen?.(key);
     const staggerIndex = Number(node.dataset.revealStagger || 0);
-    const staggerMs = Math.min(60, Math.max(0, staggerIndex * 20));
+    const staggerMs = Math.min(280, Math.max(0, staggerIndex * 40));
     node.classList.add('reveal-ready');
     node.style.setProperty('--reveal-delay', `${staggerMs}ms`);
     node.style.setProperty('--reveal-ease', REVEAL_EASE);
@@ -1136,7 +1136,7 @@ function setupFloatingTextLayer() {
     const snippet = document.createElement('span');
     const lane = lanes[i % lanes.length];
     const phrase = FLOATING_TEXT_SNIPPETS[i % FLOATING_TEXT_SNIPPETS.length];
-    const driftSeconds = randomFromRange([18, 55]);
+    const driftSeconds = randomFromRange([4.2, 9.8]);
     const rotate = randomFromRange([-2, 2]);
     const blur = randomFromRange([0, 1.5]);
     const depth = randomFromRange([0.3, 1]);
