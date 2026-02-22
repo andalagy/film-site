@@ -6,29 +6,14 @@ const LIST_CTA_LABEL = 'show more';
 const YOUTUBE_ID_REGEX = /^[A-Za-z0-9_-]{11}$/;
 const EMBED_LOAD_TIMEOUT_MS = 3200;
 const SESSION_LOAD_KEY = 'andalagy:load-overlay-played';
-const TERMINAL_BOOT_LINES = [
-  'andalagy runtime v0.1',
-  'initializing scene graph...',
-  'mounting routes...',
-  'loading film index...',
-  'loading writing index...',
-  'binding cursor...',
-  'applying grain layer...',
-  'handshake: ok',
-  'simulation ready'
-];
 const INTRO_TIMINGS = {
   standard: {
-    lineStep: 420,
-    promptDelay: 340,
-    flashDelay: 360,
-    flashDuration: 120,
-    fadeOut: 380
+    totalMs: 1540,
+    flashDuration: 100,
+    fadeOut: 320
   },
   reduced: {
-    lineStep: 170,
-    promptDelay: 160,
-    flashDelay: 200,
+    totalMs: 420,
     flashDuration: 90,
     fadeOut: 180
   }
@@ -692,11 +677,17 @@ function runSessionLoadOverlay() {
   const hasPlayed = sessionStorage.getItem(SESSION_LOAD_KEY) === '1';
   const timings = reduceMotion ? INTRO_TIMINGS.reduced : INTRO_TIMINGS.standard;
   const timeline = [];
+  const lineRegistry = new Map();
+  let rafId = 0;
   let introFinished = false;
 
   const clearTimeline = () => {
     while (timeline.length) {
       window.clearTimeout(timeline.pop());
+    }
+    if (rafId) {
+      window.cancelAnimationFrame(rafId);
+      rafId = 0;
     }
   };
 
@@ -717,6 +708,7 @@ function runSessionLoadOverlay() {
   const finishIntro = (skipped = false) => {
     if (introFinished) return;
     introFinished = true;
+    loadOverlay.classList.remove('is-finalizing');
     loadOverlay.classList.add('is-flashing');
     sessionStorage.setItem(SESSION_LOAD_KEY, '1');
     const flashDuration = skipped ? 80 : timings.flashDuration;
@@ -749,12 +741,42 @@ function runSessionLoadOverlay() {
   }
 
   const linePrefix = '&gt; ';
-  const appendLine = (line) => {
+  const appendLine = (line, key) => {
     if (!outputNode) return;
     const row = document.createElement('p');
     row.className = 'intro-terminal-line';
     row.innerHTML = `${linePrefix}${line}`;
     outputNode.append(row);
+    if (key) {
+      lineRegistry.set(key, row);
+      row.dataset.introKey = key;
+    }
+    while (outputNode.children.length > 28) {
+      const first = outputNode.firstElementChild;
+      if (!first) break;
+      const firstKey = first.getAttribute('data-intro-key');
+      if (firstKey) lineRegistry.delete(firstKey);
+      first.remove();
+    }
+    outputNode.scrollTop = outputNode.scrollHeight;
+  };
+
+  const updateLine = (key, line) => {
+    const row = lineRegistry.get(key);
+    if (!row) {
+      appendLine(line, key);
+      return;
+    }
+    row.innerHTML = `${linePrefix}${line}`;
+  };
+
+  const applyJitter = (amount = 1.6, duration = 48) => {
+    if (!outputNode) return;
+    outputNode.style.transform = `translateY(${(Math.random() - 0.5) * amount * 2}px)`;
+    timeline.push(window.setTimeout(() => {
+      if (!outputNode) return;
+      outputNode.style.transform = 'translateY(0px)';
+    }, duration));
   };
 
   loadOverlay.classList.remove('is-hidden', 'is-flashing', 'is-dissolving');
@@ -762,18 +784,74 @@ function runSessionLoadOverlay() {
   document.addEventListener('click', handleSkip, true);
   window.addEventListener('keydown', handleSkipKey, true);
 
-  let cursor = timings.lineStep;
-  TERMINAL_BOOT_LINES.forEach((line) => {
-    timeline.push(window.setTimeout(() => appendLine(line), cursor));
-    cursor += timings.lineStep;
-  });
+  if (reduceMotion) {
+    appendLine('andalagy runtime v0.2');
+    appendLine('mounting dom root... ok');
+    appendLine('simulation clock: synced');
+    appendLine('run /andalagy', 'prompt-inline');
+    timeline.push(window.setTimeout(() => finishIntro(false), timings.totalMs));
+    return;
+  }
 
-  timeline.push(window.setTimeout(() => {
-    if (!promptNode) return;
-    promptNode.hidden = false;
-  }, cursor + timings.promptDelay));
+  const pid = Math.floor(100000 + Math.random() * 900000);
+  const routeId = `rt-${Math.random().toString(16).slice(2, 8)}`;
+  const graphHash = Math.random().toString(16).slice(2, 10);
+  const ts = () => `${(Math.random() * 0.9 + 0.1).toFixed(3)}ms`;
+  const events = [
+    { at: 16, run: () => appendLine(`[${ts()}] andalagy runtime v0.2`) },
+    { at: 28, run: () => appendLine(`[${ts()}] process id: ${pid}`) },
+    { at: 36, run: () => appendLine(`[${ts()}] sandbox: engaged`) },
+    { at: 58, run: () => appendLine(`[${ts()}] allocating memory blocks...`, 'mem') },
+    { at: 66, run: () => appendLine(`[${ts()}] verifying dependency graph... hash:${graphHash}`) },
+    { at: 78, run: () => appendLine(`[${ts()}] scanning render pipeline...`) },
+    { at: 96, run: () => appendLine(`[${ts()}] mounting dom root...`) },
+    { at: 112, run: () => appendLine(`[${ts()}] injecting runtime hooks...`) },
+    { at: 136, run: () => appendLine(`[${ts()}] binding pointer layer...`) },
+    { at: 165, run: () => updateLine('mem', `[${ts()}] allocating memory blocks... ok`) },
+    { at: 206, run: () => appendLine(`[${ts()}] loading module cluster: ui/net/cache`) },
+    { at: 228, run: () => appendLine(`[${ts()}] validating route cache... ${routeId}`) },
+    { at: 242, run: () => appendLine(`[${ts()}] warming film index...`) },
+    { at: 248, run: () => appendLine(`[${ts()}] warming writing index...`) },
+    { at: 274, run: () => appendLine(`[${ts()}] resolving shader states...`, 'shader') },
+    { at: 292, run: () => appendLine(`[${ts()}] attaching observers...`) },
+    { at: 332, run: () => updateLine('shader', `[${ts()}] resolving shader states... ok`) },
+    { at: 352, run: () => appendLine(`[${ts()}] entropy layer: active`) },
+    { at: 380, run: () => appendLine(`[${ts()}] render mode: memory`) },
+    { at: 412, run: () => appendLine(`[${ts()}] simulation clock: syncing...`, 'clock') },
+    { at: 455, run: () => updateLine('clock', `[${ts()}] simulation clock: synced`) },
+    { at: 520, run: () => appendLine(`[${ts()}] packet loss: 0.02%`) },
+    { at: 546, run: () => appendLine(`[${ts()}] latency: 13ms`) },
+    { at: 598, run: () => appendLine(`[${ts()}] mirror check: unstable`) },
+    { at: 636, run: () => appendLine(`[${ts()}] memory integrity: 98.7%`) },
+    { at: 688, run: () => appendLine(`[${ts()}] ghost frame detected...`) },
+    { at: 736, run: () => appendLine(`[${ts()}] correcting drift...`) },
+    { at: 774, run: () => appendLine(`[${ts()}] recalibrating viewport...`) },
+    { at: 826, run: () => appendLine(`[${ts()}] warning: sync threshold near limit`) },
+    { at: 886, run: () => appendLine(`[${ts()}] warning: stale signal in mirror channel`) },
+    { at: 974, run: () => appendLine(`[${ts()}] handshake stage 1/2...`) },
+    { at: 1020, run: () => appendLine(`[${ts()}] handshake stage 2/2...`) },
+    { at: 1070, run: () => appendLine(`[${ts()}] verification token: ${Math.random().toString(16).slice(2, 14)}`) },
+    { at: 1140, run: () => appendLine(`[${ts()}] verification: pass`) },
+    { at: 1285, run: () => loadOverlay.classList.add('is-finalizing') },
+    { at: 1310, run: () => { if (promptNode) promptNode.hidden = false; } },
+    { at: timings.totalMs, run: () => finishIntro(false) }
+  ];
 
-  timeline.push(window.setTimeout(() => finishIntro(false), cursor + timings.promptDelay + timings.flashDelay));
+  let eventIndex = 0;
+  const start = performance.now();
+  const tick = () => {
+    if (introFinished) return;
+    const elapsed = performance.now() - start;
+    while (eventIndex < events.length && elapsed >= events[eventIndex].at) {
+      events[eventIndex].run();
+      if (eventIndex % 4 === 0) applyJitter();
+      eventIndex += 1;
+    }
+    if (eventIndex < events.length) {
+      rafId = window.requestAnimationFrame(tick);
+    }
+  };
+  rafId = window.requestAnimationFrame(tick);
 }
 
 function setupNavigation() {

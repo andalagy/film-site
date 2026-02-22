@@ -202,16 +202,24 @@ body {
 
 .intro-terminal-output,
 .intro-terminal-prompt {
-  font-size: clamp(0.8rem, 1.7vw, 0.94rem);
-  line-height: 1.6;
-  letter-spacing: 0.045em;
+  font-size: clamp(0.74rem, 1.5vw, 0.88rem);
+  line-height: 1.25;
+  letter-spacing: 0.032em;
   margin: 0;
+}
+
+.intro-terminal-output {
+  height: min(63vh, 430px);
+  overflow: hidden;
+  will-change: transform;
 }
 
 .intro-terminal-line {
   margin: 0;
   text-transform: lowercase;
   text-shadow: 0 0 8px rgba(140, 205, 152, 0.12);
+  white-space: nowrap;
+  opacity: 0.95;
 }
 
 .intro-terminal-prompt {
@@ -225,7 +233,11 @@ body {
   margin-left: 0.22rem;
   background: currentColor;
   transform: translateY(0.2em);
-  animation: introCaretBlink 1s steps(1, end) infinite;
+  animation: introCaretBlink 0.6s steps(1, end) infinite;
+}
+
+#load-overlay.is-finalizing .intro-caret {
+  animation-duration: 0.18s;
 }
 
 #load-overlay.is-flashing {
