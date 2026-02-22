@@ -162,11 +162,13 @@ body {
   justify-content: flex-start;
   padding: clamp(0.9rem, 2vw, 1.4rem);
   background: #000000;
+  color: #ffffff;
   z-index: 38;
   pointer-events: auto;
   opacity: 1;
   visibility: visible;
-  transition: opacity 380ms ease, visibility 380ms ease, filter 380ms ease;
+  mix-blend-mode: normal;
+  transition: opacity 380ms ease, visibility 380ms ease;
 }
 
 .js-ready #load-overlay {
@@ -187,6 +189,7 @@ body {
   color: #ffffff;
   font-family: 'Courier New', Courier, monospace;
   font-weight: 700;
+  opacity: 1;
   overflow: visible;
 }
 
@@ -209,6 +212,7 @@ body {
   text-transform: lowercase;
   text-shadow: none;
   white-space: nowrap;
+  color: #ffffff;
   opacity: 1;
 }
 
