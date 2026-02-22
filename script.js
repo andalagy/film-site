@@ -53,7 +53,7 @@ const DREAM_TUNING = {
   },
   MOTE_COUNT: [10, 22],
   FLICKER_OPACITY: [0.08, 0.16],
-  TRANSITION_MS: 620
+  TRANSITION_MS: 220
 };
 
 
@@ -534,7 +534,7 @@ function useRevealOnce() {
     const key = node.dataset.animKey;
     const seen = registry?.hasSeen?.(key);
     const staggerIndex = Number(node.dataset.revealStagger || 0);
-    const staggerMs = Math.min(280, Math.max(0, staggerIndex * 40));
+    const staggerMs = Math.min(60, Math.max(0, staggerIndex * 20));
     node.classList.add('reveal-ready');
     node.style.setProperty('--reveal-delay', `${staggerMs}ms`);
     node.style.setProperty('--reveal-ease', REVEAL_EASE);
@@ -954,7 +954,7 @@ function createCursorTrail() {
   for (let i = 0; i < count; i += 1) {
     const node = document.createElement('span');
     node.className = 'cursor-trail-dot';
-    node.style.transitionDuration = `${160 + i * 45}ms`;
+    node.style.transitionDuration = `${90 + i * 20}ms`;
     document.body.appendChild(node);
     nodes.push(node);
   }
@@ -1008,7 +1008,7 @@ function setupMemorySubtitle() {
     memorySubtitleFadeTimeout = window.setTimeout(() => {
       subtitleNode.textContent = lower(line);
       subtitleNode.classList.add('is-visible');
-    }, reduceMotion ? 0 : 180);
+    }, reduceMotion ? 0 : 90);
   };
 
   setSubtitle(states.slate);

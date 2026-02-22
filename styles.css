@@ -144,7 +144,7 @@ body {
   color: rgba(232, 230, 224, 0.3);
   opacity: 0;
   transform: translateY(7px);
-  transition: opacity 0.9s ease, transform 0.9s ease;
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
   pointer-events: none;
   text-transform: lowercase;
 }
@@ -348,9 +348,9 @@ main {
 .reveal-ready {
   animation-fill-mode: both;
   transition:
-    opacity 720ms var(--reveal-ease, cubic-bezier(0.2, 0.8, 0.2, 1)) var(--reveal-delay, 0ms),
-    transform 720ms var(--reveal-ease, cubic-bezier(0.2, 0.8, 0.2, 1)) var(--reveal-delay, 0ms),
-    filter 720ms var(--reveal-ease, cubic-bezier(0.2, 0.8, 0.2, 1)) var(--reveal-delay, 0ms);
+    opacity 220ms var(--reveal-ease, cubic-bezier(0.22, 0.61, 0.36, 1)) var(--reveal-delay, 0ms),
+    transform 220ms var(--reveal-ease, cubic-bezier(0.22, 0.61, 0.36, 1)) var(--reveal-delay, 0ms),
+    filter 220ms var(--reveal-ease, cubic-bezier(0.22, 0.61, 0.36, 1)) var(--reveal-delay, 0ms);
 }
 
 .reveal.is-revealed {
@@ -369,7 +369,7 @@ main {
   opacity: 0;
   transform: translate3d(0, 8px, 0);
   filter: blur(4px);
-  transition: opacity 620ms cubic-bezier(0.22, 0.61, 0.36, 1), transform 620ms cubic-bezier(0.22, 0.61, 0.36, 1), filter 620ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  transition: opacity 220ms cubic-bezier(0.22, 0.61, 0.36, 1), transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1), filter 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
 .route-fade.visible {
@@ -388,6 +388,7 @@ main {
   opacity: 0;
   transform: translate3d(0, 8px, 0);
   filter: blur(5px);
+  transition-duration: 280ms;
 }
 
 .route-fade.is-entering.visible {
@@ -709,7 +710,7 @@ main {
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.11);
   background: linear-gradient(180deg, rgba(14, 15, 19, 0.72), rgba(10, 10, 13, 0.92));
-  transition: transform 360ms cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 360ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  transition: transform 150ms cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 150ms cubic-bezier(0.22, 0.61, 0.36, 1);
   will-change: transform;
 }
 
@@ -725,7 +726,7 @@ main {
   object-fit: cover;
   display: block;
   filter: brightness(0.95) blur(0px);
-  transition: filter 0.32s ease, transform 0.32s ease;
+  transition: filter 0.16s ease-out, transform 0.16s ease-out;
 }
 
 .writing-card .work-tile::before {
@@ -769,7 +770,7 @@ main {
   margin: 0.7rem 0 0;
   font-weight: 400;
   letter-spacing: 0.015em;
-  transition: text-shadow 0.22s ease;
+  transition: text-shadow 0.14s ease-out;
 }
 
 
@@ -998,7 +999,7 @@ main {
   transform: translate(-100px, -100px);
   pointer-events: none;
   z-index: 40;
-  transition: width 0.25s ease, height 0.25s ease, border-color 0.25s ease;
+  transition: width 0.14s ease-out, height 0.14s ease-out, border-color 0.14s ease-out;
 }
 .cursor.active { width: 18px; height: 18px; border-color: rgba(255, 255, 255, 0.85); }
 
@@ -1014,7 +1015,7 @@ main {
   z-index: 39;
   opacity: 0;
   transform: translate(-120px, -120px);
-  transition: opacity 0.22s ease;
+  transition: opacity 0.14s ease-out;
 }
 
 .film-gate {
