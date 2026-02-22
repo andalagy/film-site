@@ -1,10 +1,16 @@
 //render individual writing detail pages
 (function () {
+  function escapeHtml(text) {
+    return String(text || '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
   function writingContentHtml(item) {
-    return item.content
-      .split('\n\n')
-      .map((paragraph) => `<p>${window.AppUtils.lower(paragraph)}</p>`)
-      .join('');
+    return `<div class="writing-detail-body">${escapeHtml(item.content)}</div>`;
   }
 
   function writingDetailView(slug) {
