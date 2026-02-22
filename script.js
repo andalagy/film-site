@@ -685,7 +685,7 @@ function runSessionLoadOverlay() {
 
   const keepLogPinnedToBottom = () => {
     if (!outputNode) return;
-    outputNode.scrollTop = outputNode.scrollHeight;
+    outputNode.scrollTo({ top: outputNode.scrollHeight, behavior: 'auto' });
   };
 
   const clearTimeline = () => {
@@ -753,17 +753,18 @@ function runSessionLoadOverlay() {
     promptNode.hidden = true;
   }
 
-  const linePrefix = '&gt; ';
+  const buildLineText = (line) => `> ${line}`;
+
   const appendLine = (line, key) => {
     if (!outputNode) return;
     const row = document.createElement('p');
     row.className = 'intro-terminal-line';
-    row.innerHTML = `${linePrefix}${line}`;
-    outputNode.append(row);
+    row.textContent = buildLineText(line);
     if (key) {
       lineRegistry.set(key, row);
       row.dataset.introKey = key;
     }
+    outputNode.append(row);
     keepLogPinnedToBottom();
   };
 
@@ -773,7 +774,8 @@ function runSessionLoadOverlay() {
       appendLine(line, key);
       return;
     }
-    row.innerHTML = `${linePrefix}${line}`;
+    row.textContent = buildLineText(line);
+    keepLogPinnedToBottom();
   };
 
   const applyJitter = (amount = 1.6, duration = 48) => {
