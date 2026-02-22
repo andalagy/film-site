@@ -158,10 +158,10 @@ body {
   position: fixed;
   inset: 0;
   display: none;
-  align-items: center;
-  justify-content: center;
-  padding: clamp(1rem, 3vw, 2.2rem);
-  background: #040507;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: clamp(0.9rem, 2vw, 1.4rem);
+  background: #ffffff;
   z-index: 38;
   pointer-events: auto;
   opacity: 1;
@@ -174,42 +174,32 @@ body {
 }
 
 .intro-terminal::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.03) 0,
-    rgba(255, 255, 255, 0.03) 1px,
-    transparent 1px,
-    transparent 4px
-  );
-  opacity: 0.24;
+  content: none;
 }
 
 .intro-terminal-shell {
-  width: min(780px, 100%);
-  min-height: min(72vh, 520px);
-  padding: clamp(1rem, 2.7vw, 1.7rem);
-  border: 1px solid rgba(198, 216, 202, 0.23);
-  background: linear-gradient(180deg, rgba(9, 12, 12, 0.96), rgba(3, 5, 5, 0.96));
-  box-shadow: 0 0 0 1px rgba(128, 149, 137, 0.12), 0 22px 60px rgba(0, 0, 0, 0.66);
-  color: rgba(182, 218, 189, 0.88);
+  width: min(980px, 100%);
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #0f1117;
   font-family: 'Courier New', Courier, monospace;
-  overflow: hidden;
+  font-weight: 700;
+  overflow: visible;
 }
 
 .intro-terminal-output,
 .intro-terminal-prompt {
-  font-size: clamp(0.74rem, 1.5vw, 0.88rem);
-  line-height: 1.25;
+  font-size: clamp(0.74rem, 1.45vw, 0.92rem);
+  line-height: 1.28;
   letter-spacing: 0.032em;
   margin: 0;
 }
 
 .intro-terminal-output {
-  height: min(63vh, 430px);
+  height: min(64vh, 440px);
   overflow: hidden;
   will-change: transform;
 }
@@ -217,9 +207,9 @@ body {
 .intro-terminal-line {
   margin: 0;
   text-transform: lowercase;
-  text-shadow: 0 0 8px rgba(140, 205, 152, 0.12);
+  text-shadow: none;
   white-space: nowrap;
-  opacity: 0.95;
+  opacity: 0.94;
 }
 
 .intro-terminal-prompt {
@@ -241,7 +231,7 @@ body {
 }
 
 #load-overlay.is-flashing {
-  filter: brightness(1.35);
+  filter: brightness(0.94);
 }
 
 #load-overlay.is-flashing::after {
@@ -249,9 +239,7 @@ body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: rgba(236, 238, 244, 0.92);
-  box-shadow: 0 0 70px rgba(255, 255, 255, 0.7);
-  mix-blend-mode: screen;
+  background: rgba(243, 242, 237, 0.7);
 }
 
 #load-overlay.is-dissolving {
@@ -932,11 +920,19 @@ main {
   width: min(860px, 100%);
   margin: 1rem 0 1.4rem;
   border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
   background: linear-gradient(180deg, rgba(13, 14, 16, 0.84), rgba(17, 18, 24, 0.92));
   box-shadow: 0 0 0 1px rgba(255, 208, 157, 0.08), 0 25px 65px rgba(0, 0, 0, 0.38);
 }
 
-.player-ratio { position: relative; width: 100%; aspect-ratio: 16 / 9; }
+.player-ratio {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: inherit;
+  overflow: hidden;
+}
 .player-ratio::after {
   content: '';
   position: absolute;
