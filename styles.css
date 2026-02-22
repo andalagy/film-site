@@ -950,6 +950,15 @@ main {
   background: linear-gradient(180deg, rgba(20, 22, 27, 0.94), rgba(14, 15, 18, 0.95));
 }
 
+.writing-detail article .writing-detail-body {
+  margin: 0;
+  line-height: 1.8;
+  color: var(--muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  tab-size: 2;
+}
+
 .page--writing-detail *,
 .page--writing-detail *::before,
 .page--writing-detail *::after {
