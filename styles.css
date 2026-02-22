@@ -161,7 +161,7 @@ body {
   align-items: flex-start;
   justify-content: flex-start;
   padding: clamp(0.9rem, 2vw, 1.4rem);
-  background: #ffffff;
+  background: #000000;
   z-index: 38;
   pointer-events: auto;
   opacity: 1;
@@ -184,7 +184,7 @@ body {
   border: 0;
   background: transparent;
   box-shadow: none;
-  color: #0f1117;
+  color: #ffffff;
   font-family: 'Courier New', Courier, monospace;
   font-weight: 700;
   overflow: visible;
@@ -209,7 +209,7 @@ body {
   text-transform: lowercase;
   text-shadow: none;
   white-space: nowrap;
-  opacity: 0.94;
+  opacity: 1;
 }
 
 .intro-terminal-prompt {
@@ -231,19 +231,15 @@ body {
 }
 
 #load-overlay.is-flashing {
-  filter: brightness(0.94);
+  filter: none;
 }
 
 #load-overlay.is-flashing::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: rgba(243, 242, 237, 0.7);
+  content: none;
 }
 
 #load-overlay.is-dissolving {
-  backdrop-filter: blur(0);
+  backdrop-filter: none;
 }
 
 #load-overlay.is-hidden {
@@ -298,6 +294,12 @@ body.home-page main {
 
 
 
+
+body.intro-active #grain-layer,
+body.intro-active #grain-layer::after {
+  opacity: 0 !important;
+  animation: none !important;
+}
 #grain-layer{
   position: fixed;
   inset: 0;

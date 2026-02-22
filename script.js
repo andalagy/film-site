@@ -672,6 +672,8 @@ function replaceEmbedWithFallback(wrap, film, reason) {
 
 function runSessionLoadOverlay() {
   if (!loadOverlay) return;
+
+  document.body.classList.add('intro-active');
   const outputNode = loadOverlay.querySelector('[data-intro-output]');
   const promptNode = loadOverlay.querySelector('[data-intro-prompt]');
   const hasPlayed = sessionStorage.getItem(SESSION_LOAD_KEY) === '1';
@@ -701,6 +703,7 @@ function runSessionLoadOverlay() {
     removeSkipHandlers();
     timeline.push(window.setTimeout(() => {
       loadOverlay.classList.remove('is-flashing', 'is-dissolving');
+      document.body.classList.remove('intro-active');
       loadOverlay.remove();
     }, removeDelay));
   };
@@ -728,7 +731,10 @@ function runSessionLoadOverlay() {
 
   if (hasPlayed) {
     loadOverlay.classList.add('is-hidden');
-    window.setTimeout(() => loadOverlay.remove(), 220);
+    window.setTimeout(() => {
+      document.body.classList.remove('intro-active');
+      loadOverlay.remove();
+    }, 220);
     return;
   }
 
