@@ -490,7 +490,8 @@ main {
   transform-origin: 50% 45%;
   overflow: hidden;
   width: min(760px, 100%);
-  transform: none;
+  transform: scale(0.998);
+  opacity: 0.985;
   margin-left: 0;
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -515,7 +516,7 @@ main {
 }
 
 .slate::after {
-  content: '';
+  content: none;
   position: absolute;
   inset: -35% -40%;
   background: linear-gradient(120deg, transparent 42%, rgba(255, 206, 153, 0.12) 52%, transparent 60%);
@@ -1225,21 +1226,18 @@ body.slate-flash::after {
 }
 
 @keyframes slateLeakA {
-  0% { transform: translate3d(-2%, -1%, 0) scale(1.04); opacity: 0.45; }
+  0%, 100% { transform: translate3d(-2%, -1%, 0) scale(1.04); opacity: 0.45; }
   45% { transform: translate3d(3%, 1%, 0) scale(1.1); opacity: 0.65; }
-  100% { transform: translate3d(-1%, 2%, 0) scale(1.03); opacity: 0.5; }
 }
 
 @keyframes slateLeakB {
-  0% { transform: translate3d(-8%, -2%, 0) rotate(-2.4deg); opacity: 0.25; }
+  0%, 100% { transform: translate3d(-8%, -2%, 0) rotate(-2.4deg); opacity: 0.25; }
   55% { transform: translate3d(5%, 1%, 0) rotate(1deg); opacity: 0.55; }
-  100% { transform: translate3d(-3%, 3%, 0) rotate(-0.8deg); opacity: 0.3; }
 }
 
 @keyframes slateLeakC {
-  0% { transform: translate3d(2%, -2%, 0) scale(1.02); opacity: 0.2; }
+  0%, 100% { transform: translate3d(2%, -2%, 0) scale(1.02); opacity: 0.2; }
   50% { transform: translate3d(-3%, 2%, 0) scale(1.08); opacity: 0.46; }
-  100% { transform: translate3d(1%, -1%, 0) scale(1.04); opacity: 0.28; }
 }
 
 @keyframes fadeFlash {

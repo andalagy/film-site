@@ -94,6 +94,8 @@ let revealOnceObserver = null;
 let activeMemoryLine = '';
 let filmGateTimer = 0;
 let floatingTextNearTimer = 0;
+let slateClapTimer = 0;
+let routeEnterCleanupTimer = 0;
 let isSlateCollapsed = false;
 const animationSeenKeys = new Set();
 const animationRegistry = {
@@ -416,6 +418,7 @@ async function render(options = {}) {
   const canTransition = runTransition && app.innerHTML.trim();
 
   if (canTransition) {
+    window.clearTimeout(routeEnterCleanupTimer);
     app.classList.remove('visible', 'is-entering');
     app.classList.add('is-exiting');
     await new Promise((resolve) => window.setTimeout(resolve, DREAM_TUNING.TRANSITION_MS));
@@ -443,6 +446,10 @@ async function render(options = {}) {
     requestAnimationFrame(() => {
       if (currentToken !== routeTransitionToken) return;
       app.classList.add('visible');
+      window.clearTimeout(routeEnterCleanupTimer);
+      routeEnterCleanupTimer = window.setTimeout(() => {
+        app.classList.remove('is-entering');
+      }, DREAM_TUNING.TRANSITION_MS);
     });
     applyPostMountScroll(scrollMode);
   });
@@ -481,9 +488,13 @@ function clapSlateAndAdvanceMeta() {
   }
 
   const slate = document.querySelector('[data-slate]');
+  window.clearTimeout(slateClapTimer);
   slate?.classList.remove('clap');
   void slate?.offsetWidth;
   slate?.classList.add('clap');
+  slateClapTimer = window.setTimeout(() => {
+    slate?.classList.remove('clap');
+  }, reduceMotion ? 0 : 920);
 
   document.body.classList.add('slate-flash');
   window.setTimeout(() => document.body.classList.remove('slate-flash'), reduceMotion ? 0 : 420);
@@ -736,6 +747,8 @@ function runSessionLoadOverlay() {
   };
 
   if (hasPlayed) {
+    loadOverlay.classList.remove('is-flashing', 'is-dissolving', 'is-finalizing');
+    document.body.classList.remove('intro-active');
     loadOverlay.classList.add('is-hidden');
     window.setTimeout(() => {
       document.body.classList.remove('intro-active');
